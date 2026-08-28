@@ -1,0 +1,57 @@
+    <app-page-title title="Detalle de cita" subtitle="La cita usa fecha CRED sin hora." />
+    @if (detail(); as d) {
+      <section class="summary-grid">
+        <article class="summary-card"><small>Paciente</small><strong>{{ patient()?.name || 'Paciente no disponible' }}</strong><span>DNI: {{ patient()?.documentNumber || '-' }}</span></article>
+        <article class="summary-card"><small>Fecha</small><strong>{{ formatDate(d.appointment.scheduledDate) }}</strong></article>
+        <article class="summary-card"><small>Establecimiento</small><strong>{{ d.appointment.establishment }}</strong></article>
+        <article class="summary-card"><small>Estado de cita</small><app-status-badge kind="appointment" [value]="d.appointment.status" /></article>
+        <article class="summary-card"><small>Confirmación</small><app-status-badge kind="confirmation" [value]="d.appointment.confirmationStatus" /></article>
+      </section>
+
+      <section class="detail-layout">
+        <div class="detail-main">
+          <article class="panel">
+            <h2>Información técnica</h2>
+            <div class="info-grid">
+              <span><small>ID cita</small><strong>{{ d.appointment.id }}</strong></span>
+              <span><small>Batch origen</small><strong>{{ d.appointment.sourceImportBatchId || '-' }}</strong></span>
+              <span><small>Cita reprogramada desde</small><strong>{{ d.appointment.rescheduledFromAppointmentId || '-' }}</strong></span>
+            </div>
+          </article>
+          <article class="panel">
+            <h2>Historial de reprogramación</h2>
+            @if (timeline().length) {
+              <div class="timeline">
+                @for (item of timeline(); track item.id) {
+                  <div class="timeline__item">
+                    <strong>{{ formatDate(item.scheduledDate) }}</strong>
+                    <app-status-badge kind="appointment" [value]="item.status" />
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="muted">No hay relación de reprogramación disponible en los datos de esta cita.</p>
+            }
+          </article>
+        </div>
+        <aside class="quick-panel">
+          <h2>Recordatorio asociado</h2>
+          @if (d.reminder; as reminder) {
+            <span>Estado <app-status-badge kind="reminder" [value]="reminder.status" /></span>
+            <span>Fecha programada <strong>{{ formatDateTime(reminder.scheduledAt) }}</strong></span>
+            <span>Enviado <strong>{{ formatDateTime(reminder.sentAt) }}</strong></span>
+            <span>Cancelado <strong>{{ formatDateTime(reminder.cancelledAt) }}</strong></span>
+            <span>Propósito <strong>{{ purpose(reminder.purpose) }}</strong></span>
+          } @else {
+            <p class="muted">No existe recordatorio asociado.</p>
+          }
+        </aside>
+      </section>
+      <div class="bottom-actions">
+        <a class="button" routerLink="/citas">← Volver a listado</a>
+        @if (patient(); as p) {
+          <a class="button button--primary" [routerLink]="['/pacientes', p.id]">Ver paciente</a>
+        }
+      </div>
+    }
+  

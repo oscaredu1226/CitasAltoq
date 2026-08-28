@@ -1,0 +1,61 @@
+    <app-page-title title="Citas" subtitle="Consulta de citas CRED registradas por fecha." />
+    <app-alert title="No pudimos cargar citas" [message]="error()" [requestId]="requestId()" tone="red" />
+
+    <section class="filter-panel" [formGroup]="form">
+      <label>Desde<input type="date" formControlName="fromDate" /></label>
+      <label>Hasta<input type="date" formControlName="toDate" /></label>
+      <label>Estado
+        <select formControlName="status">
+          <option value="">Todos los estados</option>
+          <option value="SCHEDULED">Programada</option>
+          <option value="ATTENDED">Atendida</option>
+          <option value="RESCHEDULED">Reprogramada</option>
+          <option value="CANCELLED">Cancelada</option>
+          <option value="NO_SHOW">No asistió</option>
+        </select>
+      </label>
+      <label>Confirmación
+        <select formControlName="confirmationStatus">
+          <option value="">Todas</option>
+          <option value="PENDING">Pendiente</option>
+          <option value="CONFIRMED">Confirmada</option>
+          <option value="CANNOT_ATTEND">No podrá asistir</option>
+        </select>
+      </label>
+      <label>Establecimiento<input formControlName="establishment" placeholder="Establecimiento" /></label>
+      <div class="filter-panel__actions">
+        <button class="button button--primary" type="button" (click)="load(0)">Aplicar filtros</button>
+        <button class="button" type="button" (click)="clear()">Limpiar filtros</button>
+      </div>
+    </section>
+
+    <article class="panel">
+      <div class="panel__header"><h2>Citas encontradas</h2></div>
+      @if (loading()) {
+        <div class="skeleton-table"></div>
+      } @else if (rows().length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Paciente</th><th>Documento</th><th>Establecimiento</th><th>Estado de cita</th><th>Confirmación</th><th>Acciones</th></tr></thead>
+            <tbody>
+              @for (row of rows(); track row.appointment.id) {
+                <tr>
+                  <td>{{ formatDate(row.appointment.scheduledDate) }}</td>
+                  <td>{{ row.patient?.name || 'Paciente no disponible' }}</td>
+                  <td>{{ row.patient?.documentNumber || '-' }}</td>
+                  <td>{{ row.appointment.establishment }}</td>
+                  <td><app-status-badge kind="appointment" [value]="row.appointment.status" /></td>
+                  <td><app-status-badge kind="confirmation" [value]="row.appointment.confirmationStatus" /></td>
+                  <td><a class="button button--small" [routerLink]="['/citas', row.appointment.id]">Ver detalle</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [page]="page()" (goTo)="load($event)" />
+        <div class="info-note"><strong>Importante</strong> Confirmada no significa Atendida. La confirmación indica intención de asistir.</div>
+      } @else {
+        <app-empty-state title="No existen citas para los filtros seleccionados." />
+      }
+    </article>
+  
