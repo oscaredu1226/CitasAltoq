@@ -1,0 +1,107 @@
+    <app-page-title title="Dashboard" subtitle="Resumen operativo de citas, pacientes y recordatorios." />
+
+    @if (loading()) {
+      <div class="skeleton-grid">
+        @for (_ of [1,2,3,4,5,6,7,8]; track _) {
+          <div class="skeleton-card"></div>
+        }
+      </div>
+    } @else if (data(); as vm) {
+      <section class="stat-grid">
+        <app-stat-card label="Pacientes registrados" [value]="number(vm.totalPatients)" icon="P" tone="blue" hint="Total desde CRED" />
+        <app-stat-card label="Citas programadas" [value]="number(vm.scheduledAppointments)" icon="C" tone="blue" hint="Estado Programada" />
+        <app-stat-card label="Citas para hoy" [value]="number(vm.todayAppointments)" icon="D" tone="blue" hint="Fecha actual" />
+        <app-stat-card label="Confirmadas hoy" [value]="number(vm.confirmedToday)" icon="✓" tone="green" hint="Confirmación, no atención" />
+        <app-stat-card label="No podrán asistir" [value]="number(vm.cannotAttendToday)" icon="×" tone="red" hint="Confirmación del paciente" />
+        <app-stat-card label="Pendientes de confirmación" [value]="number(vm.pendingToday)" icon="!" tone="amber" hint="Pendientes hoy" />
+        <app-stat-card label="Recordatorios CRED" [value]="number(vm.totalReminders)" icon="W" tone="green" hint="Total disponible" />
+        <app-stat-card label="Importaciones recientes" [value]="vm.recentImports.length" icon="I" tone="purple" hint="Últimos lotes" />
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel panel--wide">
+          <div class="panel__header">
+            <h2>Citas próximas</h2>
+            <a routerLink="/citas">Ver todas</a>
+          </div>
+          @if (vm.nextAppointments.length) {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Fecha</th><th>Paciente</th><th>Establecimiento</th><th>Confirmación</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  @for (appointment of vm.nextAppointments; track appointment.id) {
+                    <tr>
+                      <td>{{ formatDate(appointment.scheduledDate) }}</td>
+                      <td>ID paciente {{ shortId(appointment.patientId) }}</td>
+                      <td>{{ appointment.establishment }}</td>
+                      <td><app-status-badge kind="confirmation" [value]="appointment.confirmationStatus" /></td>
+                      <td><app-status-badge kind="appointment" [value]="appointment.status" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <app-empty-state title="No existen citas próximas." text="No se encontraron citas programadas desde hoy." />
+          }
+        </article>
+
+        <article class="panel">
+          <div class="panel__header">
+            <h2>Estado de confirmación de citas</h2>
+          </div>
+          <div class="donut-card">
+            <div class="donut" [style.--confirmed]="percent(vm.confirmationChart.confirmed, chartTotal(vm))" [style.--pending]="percent(vm.confirmationChart.pending, chartTotal(vm))" aria-label="Distribución de confirmaciones"></div>
+            <div class="legend">
+              <span><i class="legend-dot green"></i>{{ statusLabel('confirmation', 'CONFIRMED') }}: {{ vm.confirmationChart.confirmed }}</span>
+              <span><i class="legend-dot amber"></i>{{ statusLabel('confirmation', 'PENDING') }}: {{ vm.confirmationChart.pending }}</span>
+              <span><i class="legend-dot red"></i>{{ statusLabel('confirmation', 'CANNOT_ATTEND') }}: {{ vm.confirmationChart.cannotAttend }}</span>
+              <strong>Total: {{ chartTotal(vm) }}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel__header">
+            <h2>Estado operativo</h2>
+          </div>
+          @if (vm.operations; as ops) {
+            <div class="status-list">
+              <span>WhatsApp <app-status-badge [value]="ops.whatsAppEnabled" /></span>
+              <span>Scheduler <app-status-badge [value]="ops.reminderSchedulerEnabled" /></span>
+              <span>Sincronización CRED <app-status-badge [value]="ops.credSyncEnabled" /></span>
+              <span>Plantilla CRED <app-status-badge [value]="ops.credTemplateEnabled" /></span>
+              <span>Despacho CRED <app-status-badge [value]="ops.credDispatchEnabled" /></span>
+            </div>
+          } @else {
+            <app-empty-state title="Estado no disponible." text="El panel se mostrará cuando el servicio responda." />
+          }
+        </article>
+      </section>
+
+      <article class="panel">
+        <div class="panel__header">
+          <h2>Últimas importaciones CRED</h2>
+          <a routerLink="/importaciones">Ver todas</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Filas procesadas</th><th>Errores</th></tr></thead>
+            <tbody>
+              @for (batch of vm.recentImports; track batch.id) {
+                <tr>
+                  <td>{{ batch.fileName }}</td>
+                  <td>{{ formatDate(batch.createdAt?.slice(0, 10)) }}</td>
+                  <td><app-status-badge kind="import" [value]="batch.status" /></td>
+                  <td>{{ batch.rowsInScope ?? batch.totalRows }}</td>
+                  <td>{{ batch.errorRows }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+    }
+  
