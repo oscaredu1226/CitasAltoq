@@ -1,0 +1,11 @@
+    <app-page-title title="Configuración" subtitle="Estado operativo informativo de los servicios CRED." />
+    @if (status(); as s) {
+      <section class="stat-grid stat-grid--five">
+        <article class="panel status-card"><h2>WhatsApp</h2><app-status-badge [value]="s.whatsAppEnabled" /></article>
+        <article class="panel status-card"><h2>Scheduler</h2><app-status-badge [value]="s.reminderSchedulerEnabled" /></article>
+        <article class="panel status-card"><h2>Sincronización CRED</h2><app-status-badge [value]="s.credSyncEnabled" /></article>
+        <article class="panel status-card"><h2>Plantilla CRED</h2><app-status-badge [value]="s.credTemplateEnabled" /></article>
+        <article class="panel status-card"><h2>Despacho CRED</h2><app-status-badge [value]="s.credDispatchEnabled" /></article>
+      </section>
+    }
+  

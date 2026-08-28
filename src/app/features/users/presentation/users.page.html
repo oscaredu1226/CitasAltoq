@@ -1,0 +1,75 @@
+    <app-page-title title="Usuarios" subtitle="Gestión administrativa de cuentas, roles y ámbitos.">
+      <button class="button button--primary" type="button" (click)="newUser()">Crear usuario</button>
+    </app-page-title>
+    <app-alert title="Usuarios" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'green'" />
+    <article class="panel">
+      <div class="panel__header"><h2>Listado de usuarios</h2></div>
+      @if (page(); as p) {
+        @if (p.content.length) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Scope</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody>
+                @for (user of p.content; track user.id) {
+                  <tr>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.displayName }}</td>
+                    <td>{{ role(user.roles[0]) }}</td>
+                    <td>{{ scopeText(user) }}</td>
+                    <td><app-status-badge [value]="user.active" /></td>
+                    <td class="actions">
+                      <button class="button button--small" type="button" (click)="edit(user)">Editar</button>
+                      <button class="button button--small" type="button" (click)="resetPassword(user)">Restablecer contraseña</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pagination [page]="p" (goTo)="load($event)" />
+        } @else {
+          <app-empty-state title="No existen usuarios para mostrar." />
+        }
+      }
+    </article>
+
+    @if (editing()) {
+      <div class="drawer">
+        <form class="drawer__panel" [formGroup]="form" (ngSubmit)="save()">
+          <h2>{{ selected()?.id ? 'Editar usuario' : 'Crear usuario' }}</h2>
+          <label>Correo<input type="email" formControlName="email" /></label>
+          <label>Nombre visible<input formControlName="displayName" /></label>
+          @if (!selected()) {
+            <label>Contraseña<input type="password" formControlName="password" /></label>
+          }
+          <label>Rol
+            <select formControlName="role">
+              <option value="ADMIN">Administrador</option>
+              <option value="ESTABLISHMENT_OPERATOR">Operador de establecimiento</option>
+            </select>
+          </label>
+          <label>Red<input formControlName="red" /></label>
+          <label>MicroRed<input formControlName="microred" /></label>
+          <label>Establecimiento<input formControlName="establishment" /></label>
+          <label class="checkbox-row"><input type="checkbox" formControlName="active" /> Activo</label>
+          <div class="modal__actions"><button class="button" type="button" (click)="editing.set(false)">Cancelar</button><button class="button button--primary" type="submit">Guardar cambios</button></div>
+        </form>
+      </div>
+    }
+
+    @if (passwordUser(); as user) {
+      <div class="modal-backdrop" role="presentation">
+        <form class="modal" role="dialog" aria-modal="true" aria-label="Restablecer contraseña" [formGroup]="passwordForm" (ngSubmit)="savePassword(user)">
+          <h2>Restablecer contraseña</h2>
+          <p class="info-note">No se solicita contraseña anterior. La nueva contraseña debe tener al menos 8 caracteres.</p>
+          <strong>{{ user.email }}</strong>
+          <label>Nueva contraseña<input type="password" formControlName="password" /></label>
+          <label>Confirmar contraseña<input type="password" formControlName="confirm" /></label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="passwordUser.set(null)">Cancelar</button>
+            <button class="button button--primary" type="submit">Restablecer contraseña</button>
+          </div>
+        </form>
+      </div>
+    }
+  

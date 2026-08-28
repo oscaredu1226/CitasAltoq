@@ -1,0 +1,84 @@
+    <app-page-title title="Contactos" subtitle="Administración de contactos autorizada solo para administradores.">
+      <button class="button button--primary" type="button" (click)="newContact()">Crear contacto</button>
+    </app-page-title>
+    <app-alert title="Contactos" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'green'" />
+    <article class="panel">
+      <div class="panel__header"><h2>Listado de contactos</h2></div>
+      @if (page(); as p) {
+        @if (p.content.length) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Teléfono</th><th>Estado</th><th>Consentimiento WhatsApp</th><th>Última actualización</th><th>Acciones</th></tr></thead>
+              <tbody>
+                @for (contact of p.content; track contact.id) {
+                  <tr>
+                    <td>{{ contact.name }}</td>
+                    <td>{{ mask(contact.phoneNumber) }}</td>
+                    <td><app-status-badge [value]="contact.active" /></td>
+                    <td><app-status-badge kind="consent" [value]="contact.whatsAppConsentStatus" /></td>
+                    <td>{{ formatDateTime(contact.updatedAt) }}</td>
+                    <td class="actions">
+                      <button class="button button--small" type="button" (click)="edit(contact)">Editar</button>
+                      <button class="button button--small" type="button" (click)="openConsent(contact)">Consentimiento</button>
+                      <button class="button button--small" type="button" [disabled]="!contact.active" (click)="deactivate(contact)">Desactivar</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pagination [page]="p" (goTo)="load($event)" />
+        } @else {
+          <app-empty-state title="No se encontraron contactos." />
+        }
+      }
+    </article>
+
+    @if (editing()) {
+      <div class="drawer">
+        <form class="drawer__panel" [formGroup]="form" (ngSubmit)="save()">
+          <h2>{{ selected()?.id ? 'Editar contacto' : 'Crear contacto' }}</h2>
+          <label>Nombre<input formControlName="name" /></label>
+          <label>Teléfono<input formControlName="phoneNumber" placeholder="+51987654321" /></label>
+          <label class="checkbox-row"><input type="checkbox" formControlName="active" /> Activo</label>
+          <div class="modal__actions"><button class="button" type="button" (click)="editing.set(false)">Cancelar</button><button class="button button--primary" type="submit">Guardar cambios</button></div>
+        </form>
+      </div>
+    }
+
+    @if (consentContact(); as c) {
+      <div class="modal-backdrop" role="presentation">
+        <section class="modal" role="dialog" aria-modal="true" aria-label="Consentimiento para comunicaciones por WhatsApp">
+          <h2>Consentimiento para comunicaciones por WhatsApp</h2>
+          <p class="info-note">El consentimiento para recibir comunicaciones por WhatsApp es independiente de la confirmación de asistencia a una cita.</p>
+          <span>Contacto <strong>{{ c.name }}</strong></span>
+          <span>Estado actual <app-status-badge kind="consent" [value]="c.whatsAppConsentStatus" /></span>
+          <label>Nuevo estado
+            <select #consentSelect>
+              <option value="UNKNOWN">Sin registrar</option>
+              <option value="OPTED_IN">Autorizado</option>
+              <option value="OPTED_OUT">No autorizado</option>
+            </select>
+          </label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="consentContact.set(null)">Cancelar</button>
+            <button class="button button--primary" type="button" (click)="saveConsent(c, consentSelect.value)">Guardar cambios</button>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (deactivateContact(); as c) {
+      <div class="modal-backdrop" role="presentation">
+        <section class="modal" role="dialog" aria-modal="true" aria-label="Desactivar contacto">
+          <h2>Desactivar contacto</h2>
+          <p class="info-note">El contacto quedará inactivo. Esta acción no elimina el registro.</p>
+          <strong>{{ c.name }}</strong>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="deactivateContact.set(null)">Cancelar</button>
+            <button class="button button--primary" type="button" (click)="confirmDeactivate(c)">Desactivar cuenta</button>
+          </div>
+        </section>
+      </div>
+    }
+  
