@@ -1,0 +1,55 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ApiProblem, UiError } from './api-problem';
+
+const fallback = 'No pudimos completar la operación.';
+
+export function mapApiError(error: unknown): UiError {
+  if (!(error instanceof HttpErrorResponse)) {
+    return { message: fallback };
+  }
+
+  const problem = normalizeProblem(error.error);
+  const requestId = problem.requestId ?? error.headers.get('X-Request-ID') ?? undefined;
+  const message = mapProblemMessage(error.status, problem);
+  return { message, requestId };
+}
+
+function normalizeProblem(value: unknown): ApiProblem {
+  return value && typeof value === 'object' ? (value as ApiProblem) : {};
+}
+
+function mapProblemMessage(status: number, problem: ApiProblem): string {
+  if (problem.code === 'IMPORT_FILE_CHANGED') {
+    return 'El archivo cambió después de la vista previa. Vuelve a analizarlo.';
+  }
+
+  if (problem.code === 'IMPORT_SCOPE_CHANGED') {
+    return 'El ámbito seleccionado cambió después de la vista previa. Vuelve a analizar el archivo.';
+  }
+
+  if (status === 409 && problem.code?.includes('LAST_ADMIN')) {
+    return 'No se puede desactivar ni quitar permisos al último administrador activo.';
+  }
+
+  if (status === 409 && problem.code?.includes('EMAIL')) {
+    return 'Ya existe una cuenta con ese correo electrónico.';
+  }
+
+  if (status === 409) {
+    return 'Ya existe un registro incompatible con esta operación.';
+  }
+
+  if (status === 403) {
+    return 'No tienes permisos para acceder a esta sección.';
+  }
+
+  if (status === 401) {
+    return 'Tu sesión expiró o ya no es válida.';
+  }
+
+  if (status >= 500) {
+    return 'El servicio no está disponible temporalmente. Intenta nuevamente.';
+  }
+
+  return fallback;
+}
