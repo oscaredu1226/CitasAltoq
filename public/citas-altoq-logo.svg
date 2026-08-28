@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="CITAS ALTOQ">
+  <rect width="96" height="96" rx="22" fill="#EAF4FF"/>
+  <path d="M38 10h20v18h18v20H58v38H38V48H20V28h18V10Z" fill="#0B5ED7"/>
+  <rect x="31" y="31" width="34" height="34" rx="8" fill="#FFFFFF"/>
+  <path d="M39 29v9M57 29v9" stroke="#0B5ED7" stroke-width="5" stroke-linecap="round"/>
+  <path d="M38 49l8 8 15-18" fill="none" stroke="#16A34A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
