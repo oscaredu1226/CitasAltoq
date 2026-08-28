@@ -1,0 +1,65 @@
+    <app-page-title title="Pacientes" subtitle="Consulta de pacientes provenientes de CRED." />
+    <app-alert title="No pudimos cargar pacientes" [message]="error()" [requestId]="requestId()" tone="red" />
+
+    <section class="filter-panel" [formGroup]="form">
+      <label>Buscar por documento<input formControlName="documentNumber" placeholder="Ej. 76543210" /></label>
+      <label>Buscar por nombre <small>Filtro local</small><input formControlName="name" placeholder="Ej. Lucía Quispe" /></label>
+      <label>Historia clínica<input formControlName="clinicalHistory" placeholder="Ej. HC-000123" /></label>
+      <label>Estado
+        <select formControlName="active">
+          <option value="">Todos</option>
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </label>
+      <div class="filter-panel__actions">
+        <button class="button button--primary" type="button" (click)="load(0)">Aplicar filtros</button>
+        <button class="button" type="button" (click)="clear()">Limpiar filtros</button>
+      </div>
+    </section>
+
+    <article class="panel">
+      <div class="panel__header">
+        <h2>Listado de pacientes</h2>
+        @if (page(); as p) {
+          <span>Mostrando {{ p.content.length }} de {{ p.totalElements }} pacientes</span>
+        }
+      </div>
+      @if (loading()) {
+        <div class="skeleton-table"></div>
+      } @else if (filtered().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Documento</th><th>Nombre</th><th>Fecha de nacimiento</th><th>Historia clínica</th><th>Establecimiento</th><th>Estado</th><th>Contacto</th><th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (patient of filtered(); track patient.id) {
+                <tr>
+                  <td>{{ patient.documentNumber }}</td>
+                  <td>{{ patient.name }}</td>
+                  <td>{{ formatDate(patient.birthDate) }}</td>
+                  <td>{{ patient.clinicalHistory }}</td>
+                  <td>{{ patient.establishment }}</td>
+                  <td><app-status-badge [value]="patient.active" /></td>
+                  <td>
+                    @if (patient.guardianContactId) {
+                      <span class="badge badge--blue">Contacto vinculado</span>
+                    } @else {
+                      <span class="muted">Sin contacto</span>
+                    }
+                  </td>
+                  <td><a class="button button--small" [routerLink]="['/pacientes', patient.id]">Ver detalle</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [page]="page()" (goTo)="load($event)" />
+      } @else {
+        <app-empty-state title="No se encontraron pacientes." text="Intenta ajustar los filtros de búsqueda para encontrar resultados." />
+      }
+    </article>
+  

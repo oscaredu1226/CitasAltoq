@@ -1,0 +1,75 @@
+    <a class="back-link" routerLink="/pacientes">← Volver a la lista de pacientes</a>
+    @if (patient(); as p) {
+      <app-page-title [title]="p.name" [subtitle]="'Paciente registrada en CRED · ID ' + shortId(p.id)">
+        <app-status-badge [value]="p.active" />
+      </app-page-title>
+
+      <section class="detail-layout">
+        <div class="detail-main">
+          <article class="panel">
+            <h2>1. Información personal</h2>
+            <div class="info-grid">
+              <span><small>Tipo de documento</small><strong>{{ p.documentType }}</strong></span>
+              <span><small>Número de documento</small><strong>{{ p.documentNumber }}</strong></span>
+              <span><small>Fecha de nacimiento</small><strong>{{ formatDate(p.birthDate) }}</strong></span>
+              <span><small>Género</small><strong>{{ p.gender }}</strong></span>
+              <span><small>Historia clínica</small><strong>{{ p.clinicalHistory }}</strong></span>
+              <span><small>Dirección</small><strong>{{ p.address || '-' }}</strong></span>
+              <span><small>Distrito</small><strong>{{ p.district || '-' }}</strong></span>
+              <span><small>Provincia</small><strong>{{ p.province || '-' }}</strong></span>
+            </div>
+          </article>
+          <article class="panel">
+            <h2>2. Información CRED</h2>
+            <div class="info-grid">
+              <span><small>Establecimiento</small><strong>{{ p.establishment }}</strong></span>
+              <span><small>Microred</small><strong>{{ p.microNetwork }}</strong></span>
+              <span><small>Red</small><strong>{{ p.network }}</strong></span>
+              <span><small>Grupo etario</small><strong>{{ p.ageGroup }}</strong></span>
+              <span class="info-grid__wide"><small>Observaciones</small><strong>{{ p.observations || 'Sin observaciones registradas.' }}</strong></span>
+            </div>
+          </article>
+          <article class="panel">
+            <h2>3. Contacto responsable</h2>
+            @if (contact(); as c) {
+              <div class="info-grid">
+                <span><small>Nombre</small><strong>{{ c.name }}</strong></span>
+                <span><small>Teléfono</small><strong>{{ c.phoneNumber }}</strong></span>
+                <span><small>Consentimiento WhatsApp</small><app-status-badge kind="consent" [value]="c.whatsAppConsentStatus" /></span>
+              </div>
+            } @else if (p.guardianContactId) {
+              <p class="muted">Contacto responsable vinculado. Los datos completos solo se consultan con permisos de administrador.</p>
+            } @else {
+              <p class="muted">No hay contacto responsable vinculado.</p>
+            }
+          </article>
+          <article class="panel">
+            <div class="panel__header"><h2>4. Historial de citas</h2><a routerLink="/citas">Ver todas</a></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Fecha</th><th>Estado</th><th>Confirmación</th><th>Establecimiento</th><th>Origen</th><th>Acciones</th></tr></thead>
+                <tbody>
+                  @for (appointment of appointments(); track appointment.id) {
+                    <tr>
+                      <td>{{ formatDate(appointment.scheduledDate) }}</td>
+                      <td><app-status-badge kind="appointment" [value]="appointment.status" /></td>
+                      <td><app-status-badge kind="confirmation" [value]="appointment.confirmationStatus" /></td>
+                      <td>{{ appointment.establishment }}</td>
+                      <td>{{ origin(appointment) }}</td>
+                      <td><a class="button button--small" [routerLink]="['/citas', appointment.id]">Ver detalle</a></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+        <aside class="quick-panel">
+          <h2>Datos rápidos</h2>
+          <span>Citas mostradas <strong>{{ appointments().length }}</strong></span>
+          <span>Estado <app-status-badge [value]="p.active" /></span>
+          <span>Última actualización <strong>{{ formatDate(p.updatedAt?.slice(0, 10)) }}</strong></span>
+        </aside>
+      </section>
+    }
+  
