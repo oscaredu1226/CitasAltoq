@@ -1,0 +1,14 @@
+<header class="page-title">
+  <div>
+    <nav class="breadcrumb" aria-label="Ruta">
+      <a routerLink="/dashboard">Inicio</a>
+      <span>/</span>
+      <span>{{ title() }}</span>
+    </nav>
+    <h1>{{ title() }}</h1>
+    @if (subtitle()) {
+      <p>{{ subtitle() }}</p>
+    }
+  </div>
+  <ng-content />
+</header>

@@ -1,0 +1,10 @@
+@if (page(); as p) {
+  <div class="pagination">
+    <span>Mostrando {{ firstItem(p) }} a {{ lastItem(p) }} de {{ p.totalElements }}</span>
+    <div class="pagination__buttons" aria-label="Paginación">
+      <button class="icon-button" type="button" (click)="goTo.emit(p.page - 1)" [disabled]="p.page <= 0" aria-label="Página anterior">‹</button>
+      <strong>{{ p.page + 1 }}</strong>
+      <button class="icon-button" type="button" (click)="goTo.emit(p.page + 1)" [disabled]="p.page + 1 >= p.totalPages" aria-label="Página siguiente">›</button>
+    </div>
+  </div>
+}

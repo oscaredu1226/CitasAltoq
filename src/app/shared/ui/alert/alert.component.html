@@ -1,0 +1,9 @@
+@if (message()) {
+  <div class="alert" [class]="toneClass()" role="status">
+    <strong>{{ title() }}</strong>
+    <span>{{ message() }}</span>
+    @if (requestId()) {
+      <small>Código de seguimiento: {{ requestId() }}</small>
+    }
+  </div>
+}
