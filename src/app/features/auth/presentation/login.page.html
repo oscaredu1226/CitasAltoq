@@ -1,0 +1,52 @@
+    <main class="login-page">
+      <section class="login-card" aria-label="Inicio de sesión">
+        <div class="login-card__form">
+          <div class="login-brand">
+            <app-logo />
+          </div>
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <label>
+              Correo electrónico
+              <input type="email" formControlName="email" placeholder="Ingresa tu correo electrónico" autocomplete="username" />
+            </label>
+            <label>
+              Contraseña
+              <input type="password" formControlName="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" />
+            </label>
+            <label class="checkbox-row">
+              <input type="checkbox" formControlName="remember" />
+              Recordarme
+            </label>
+            <button class="button button--primary button--block" type="submit" [disabled]="form.invalid || loading()">
+              {{ loading() ? 'Iniciando sesión...' : 'Iniciar sesión' }}
+            </button>
+            <button class="link-button" type="button" (click)="forgotMessage.set('Solicita a un administrador del sistema que restablezca tu contraseña.')">
+              ¿Olvidaste tu contraseña?
+            </button>
+            <app-alert title="Credenciales incorrectas" [message]="error()" tone="red" />
+            <app-alert title="Restablecimiento de contraseña" [message]="forgotMessage()" tone="blue" />
+          </form>
+        </div>
+        <aside class="login-card__info">
+          <div class="login-illustration" aria-hidden="true">
+            <div class="screen-shape">
+              <span></span><span></span><span></span>
+              <strong>✓</strong>
+            </div>
+            <div class="phone-shape">
+              <p>Recordatorio de cita</p>
+              <strong>Confirmar asistencia</strong>
+            </div>
+          </div>
+          <h1>Gestión de citas y recordatorios para tu equipo</h1>
+          <p>CITAS ALTOQ permite consultar pacientes CRED, citas, importaciones y recordatorios desde un entorno administrativo privado.</p>
+          <ul class="feature-list">
+            <li><span>D</span>Dashboard operativo con datos reales</li>
+            <li><span>C</span>Control de citas y confirmaciones</li>
+            <li><span>W</span>Recordatorios CRED por WhatsApp o SMS</li>
+            <li><span>S</span>Acceso protegido por roles y ámbito</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+  
