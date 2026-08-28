@@ -1,0 +1,77 @@
+    <app-page-title title="Nueva importación" subtitle="Selecciona un archivo XLSX, revisa la vista previa y confirma la aplicación." />
+    <app-alert title="Importación" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'blue'" />
+
+    <section class="stepper" aria-label="Pasos de importación">
+      <span class="is-done">1 Seleccionar archivo</span>
+      <span [class.is-done]="preview()">2 Vista previa</span>
+      <span [class.is-done]="acceptedBatchId()">3 Confirmar importación</span>
+    </section>
+
+    <section class="panel upload-panel">
+      <label class="drop-zone">
+        <input type="file" accept=".xlsx" (change)="selectFile($event)" />
+        <strong>{{ file()?.name || 'Seleccionar archivo XLSX' }}</strong>
+        <span>No se aceptan CSV. Revisa la vista previa antes de confirmar.</span>
+      </label>
+      @if (admin()) {
+        <form class="filter-panel" [formGroup]="scopeForm">
+          <label>Red<input formControlName="red" /></label>
+          <label>MicroRed<input formControlName="microred" /></label>
+          <label>Establecimiento<input formControlName="establishment" /></label>
+        </form>
+      } @else {
+        <p class="info-note">Se usará el establecimiento asignado a tu usuario.</p>
+      }
+      <button class="button button--primary" type="button" (click)="analyze()" [disabled]="!file() || analyzing()">Analizar archivo</button>
+    </section>
+
+    @if (preview(); as p) {
+      <section class="stat-grid">
+        <app-stat-card label="Filas totales" [value]="p.totalDataRows" icon="F" tone="blue" />
+        <app-stat-card label="Dentro del ámbito" [value]="p.rowsInScope" icon="A" tone="green" />
+        <app-stat-card label="Excluidas" [value]="p.rowsExcludedByScope" icon="E" tone="amber" />
+        <app-stat-card label="Procesables" [value]="p.processableSourceRows" icon="✓" tone="green" />
+        <app-stat-card label="Errores" [value]="p.sourceErrorRows" icon="!" tone="red" />
+        <app-stat-card label="Advertencias" [value]="p.sourceWarningRows" icon="W" tone="amber" />
+      </section>
+      <section class="dashboard-grid">
+        <article class="panel"><h2>Pacientes</h2><div class="metric-list"><span>Nuevos <strong>{{ p.newPatients }}</strong></span><span>Actualizados <strong>{{ p.updatedPatients }}</strong></span><span>Sin cambios <strong>{{ p.unchangedPatients }}</strong></span></div></article>
+        <article class="panel"><h2>Contactos</h2><div class="metric-list"><span>Nuevos <strong>{{ p.newContacts }}</strong></span><span>Reutilizados <strong>{{ p.reusedContacts }}</strong></span><span>Sin apoderado utilizable <strong>{{ p.patientsWithoutUsableGuardian }}</strong></span></div></article>
+        <article class="panel"><h2>Citas</h2><div class="metric-list"><span>Nuevas <strong>{{ p.newAppointments }}</strong></span><span>Reprogramadas <strong>{{ p.rescheduledAppointments }}</strong></span><span>Sin cambios <strong>{{ p.unchangedAppointments }}</strong></span></div></article>
+        <article class="panel"><h2>Revisión</h2><div class="metric-list"><span>Requieren revisión <strong>{{ p.reviewRequiredRows }}</strong></span><span>Conflictos <strong>{{ p.conflictRows }}</strong></span></div></article>
+      </section>
+      <article class="panel">
+        <div class="panel__header"><h2>Detalles de incidencias</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fila</th><th>Campo</th><th>Severidad</th><th>Código</th><th>Descripción</th></tr></thead>
+            <tbody>
+              @for (issue of p.issues; track issue.sourceRowNumber + issue.field + issue.code) {
+                <tr><td>{{ issue.sourceRowNumber }}</td><td>{{ issue.field }}</td><td>{{ issue.severity }}</td><td>{{ issue.code }}</td><td>{{ issue.message }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (p.issuesTruncated) {
+          <p class="info-note">Se muestran solo las primeras incidencias detectadas.</p>
+        }
+      </article>
+      <div class="bottom-actions">
+        <a class="button" routerLink="/importaciones">Cancelar</a>
+        <button class="button button--primary" type="button" (click)="confirmOpen.set(true)">Aplicar importación</button>
+      </div>
+    }
+
+    @if (confirmOpen()) {
+      <div class="modal-backdrop" role="presentation">
+        <section class="modal" role="dialog" aria-modal="true" aria-label="Confirmar importación">
+          <h2>Confirmar importación</h2>
+          <p class="info-note">Se aplicarán los cambios identificados durante la vista previa. Las citas reprogramadas conservarán su historial.</p>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="confirmOpen.set(false)">Volver</button>
+            <button class="button button--primary" type="button" (click)="apply()">Confirmar importación</button>
+          </div>
+        </section>
+      </div>
+    }
+  

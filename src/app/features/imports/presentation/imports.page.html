@@ -1,0 +1,40 @@
+    <app-page-title title="Importaciones CRED" subtitle="Historial de lotes importados desde archivos XLSX.">
+      <a class="button button--primary" routerLink="/importaciones/nueva">Nueva importación</a>
+    </app-page-title>
+    @if (page(); as p) {
+      <section class="stat-grid stat-grid--four">
+        <app-stat-card label="Importaciones" [value]="p.totalElements" icon="I" tone="green" />
+        <app-stat-card label="Completadas visibles" [value]="count('COMPLETED')" icon="✓" tone="green" />
+        <app-stat-card label="Con errores visibles" [value]="count('FAILED')" icon="×" tone="red" />
+        <app-stat-card label="Procesando visibles" [value]="count('PROCESSING')" icon="P" tone="purple" />
+      </section>
+      <article class="panel">
+        <div class="panel__header"><h2>Historial de importaciones</h2></div>
+        @if (p.content.length) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Archivo</th><th>Fecha</th><th>Estado</th><th>Filas</th><th>Pacientes nuevos</th><th>Citas nuevas</th><th>Reprogramadas</th><th>Errores</th><th>Acciones</th></tr></thead>
+              <tbody>
+                @for (batch of p.content; track batch.id) {
+                  <tr>
+                    <td>{{ batch.fileName }}</td>
+                    <td>{{ formatDateTime(batch.createdAt) }}</td>
+                    <td><app-status-badge kind="import" [value]="batch.status" /></td>
+                    <td>{{ batch.totalRows }}</td>
+                    <td>{{ batch.newPatients }}</td>
+                    <td>{{ batch.newAppointments }}</td>
+                    <td>{{ batch.rescheduledAppointments }}</td>
+                    <td>{{ batch.errorRows }}</td>
+                    <td><a class="button button--small" [routerLink]="['/importaciones', batch.id]">Ver detalle</a></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pagination [page]="p" (goTo)="load($event)" />
+        } @else {
+          <app-empty-state title="No se han realizado importaciones." />
+        }
+      </article>
+    }
+  
