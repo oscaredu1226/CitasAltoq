@@ -22,6 +22,12 @@ export interface DashboardData {
   operations: OperationsStatus | null;
 }
 
+export interface DashboardFilters {
+  red?: string;
+  microred?: string;
+  establishment?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardFacade {
   private readonly patients = inject(PatientsRepository);
@@ -30,8 +36,13 @@ export class DashboardFacade {
   private readonly imports = inject(ImportsRepository);
   private readonly operations = inject(OperationsRepository);
 
-  load(): Observable<DashboardData> {
+  load(filters: DashboardFilters = {}): Observable<DashboardData> {
     const today = todayDateOnly();
+    const appointmentFilters = {
+      red: filters.red,
+      microred: filters.microred,
+      establishment: filters.establishment,
+    };
     const total = <T>(source: Observable<{ totalElements: number }>) =>
       source.pipe(
         map((page) => page.totalElements),
@@ -39,19 +50,19 @@ export class DashboardFacade {
       );
 
     return forkJoin({
-      totalPatients: total(this.patients.list({ page: 0, size: 1 })),
-      scheduledAppointments: total(this.appointments.list({ status: 'SCHEDULED', page: 0, size: 1 })),
-      todayAppointments: total(this.appointments.list({ scheduledDate: today, page: 0, size: 1 })),
-      confirmedToday: total(this.appointments.list({ scheduledDate: today, confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
-      cannotAttendToday: total(this.appointments.list({ scheduledDate: today, confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
-      pendingToday: total(this.appointments.list({ scheduledDate: today, confirmationStatus: 'PENDING', page: 0, size: 1 })),
-      totalReminders: total(this.reminders.list({ page: 0, size: 1 })),
-      nextAppointments: this.appointments.list({ fromDate: today, status: 'SCHEDULED', page: 0, size: 5 }).pipe(
+      totalPatients: total(this.patients.list({ ...filters, page: 0, size: 1 })),
+      scheduledAppointments: total(this.appointments.list({ ...appointmentFilters, status: 'SCHEDULED', page: 0, size: 1 })),
+      todayAppointments: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, page: 0, size: 1 })),
+      confirmedToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
+      cannotAttendToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
+      pendingToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'PENDING', page: 0, size: 1 })),
+      totalReminders: total(this.reminders.list({ ...filters, page: 0, size: 1 })),
+      nextAppointments: this.appointments.list({ ...appointmentFilters, fromDate: today, status: 'SCHEDULED', page: 0, size: 5 }).pipe(
         map((page) => page.content),
         catchError(() => of([])),
       ),
-      recentImports: this.imports.list(0, 5).pipe(
-        map((page) => page.content),
+      recentImports: this.imports.list(0, 50).pipe(
+        map((page) => page.content.filter((batch) => matchesImportScope(batch, filters)).slice(0, 5)),
         catchError(() => of(emptyPage<ImportBatch>().content)),
       ),
       operations: this.operations.status().pipe(catchError(() => of(null))),
@@ -66,4 +77,20 @@ export class DashboardFacade {
       })),
     );
   }
+}
+
+function matchesImportScope(batch: ImportBatch, filters: DashboardFilters): boolean {
+  if (filters.establishment && batch.scope.establishment !== filters.establishment) {
+    return false;
+  }
+
+  if (filters.microred && batch.scope.microred !== filters.microred) {
+    return false;
+  }
+
+  if (filters.red && batch.scope.red !== filters.red) {
+    return false;
+  }
+
+  return true;
 }

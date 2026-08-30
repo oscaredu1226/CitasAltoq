@@ -1,4 +1,44 @@
-    <app-page-title title="Dashboard" subtitle="Resumen operativo de citas, pacientes y recordatorios." />
+    <app-page-title title="Dashboard" [subtitle]="organizationText() || 'Resumen operativo de citas, pacientes y recordatorios.'" />
+
+    @if (admin()) {
+      <section class="panel dashboard-filter">
+        <div>
+          <h2>Filtrar indicadores</h2>
+          <p>{{ filterText() }}</p>
+        </div>
+        <div class="dashboard-filter__controls">
+          <app-organization-dropdown
+            label="Red"
+            placeholder="Todas"
+            searchPlaceholder="Buscar Red..."
+            [options]="redOptions()"
+            [selectedId]="selectedRedId()"
+            (selectedIdChange)="selectRed($event)"
+          />
+          <app-organization-dropdown
+            label="Microred"
+            placeholder="Todas"
+            searchPlaceholder="Buscar Microred..."
+            emptyText="Selecciona una Red o no hay Microredes disponibles."
+            [disabled]="!selectedRedId()"
+            [options]="microredOptions()"
+            [selectedId]="selectedMicroredId()"
+            (selectedIdChange)="selectMicrored($event)"
+          />
+          <app-establishment-select
+            [redId]="selectedRedId() || null"
+            [microredId]="selectedMicroredId() || null"
+            [disabled]="!selectedMicroredId()"
+            [selectedId]="selectedEstablishmentId()"
+            (selectedIdChange)="selectedEstablishmentId.set($event)"
+          />
+        </div>
+        <div class="dashboard-filter__actions">
+          <button class="button button--primary" type="button" (click)="load()" [disabled]="loading()">Aplicar filtros</button>
+          <button class="button" type="button" (click)="clearFilters()" [disabled]="loading()">Limpiar filtros</button>
+        </div>
+      </section>
+    }
 
     @if (loading()) {
       <div class="skeleton-grid">
@@ -8,14 +48,14 @@
       </div>
     } @else if (data(); as vm) {
       <section class="stat-grid">
-        <app-stat-card label="Pacientes registrados" [value]="number(vm.totalPatients)" icon="P" tone="blue" hint="Total desde CRED" />
-        <app-stat-card label="Citas programadas" [value]="number(vm.scheduledAppointments)" icon="C" tone="blue" hint="Estado Programada" />
-        <app-stat-card label="Citas para hoy" [value]="number(vm.todayAppointments)" icon="D" tone="blue" hint="Fecha actual" />
-        <app-stat-card label="Confirmadas hoy" [value]="number(vm.confirmedToday)" icon="✓" tone="green" hint="Confirmación, no atención" />
-        <app-stat-card label="No podrán asistir" [value]="number(vm.cannotAttendToday)" icon="×" tone="red" hint="Confirmación del paciente" />
-        <app-stat-card label="Pendientes de confirmación" [value]="number(vm.pendingToday)" icon="!" tone="amber" hint="Pendientes hoy" />
-        <app-stat-card label="Recordatorios CRED" [value]="number(vm.totalReminders)" icon="W" tone="green" hint="Total disponible" />
-        <app-stat-card label="Importaciones recientes" [value]="vm.recentImports.length" icon="I" tone="purple" hint="Últimos lotes" />
+        <app-stat-card label="Pacientes registrados" [value]="number(vm.totalPatients)" [iconComponent]="icons.users" tone="blue" hint="Total desde CRED" />
+        <app-stat-card label="Citas programadas" [value]="number(vm.scheduledAppointments)" [iconComponent]="icons.calendarDays" tone="blue" hint="Estado Programada" />
+        <app-stat-card label="Citas para hoy" [value]="number(vm.todayAppointments)" [iconComponent]="icons.calendarClock" tone="blue" hint="Fecha actual" />
+        <app-stat-card label="Confirmadas hoy" [value]="number(vm.confirmedToday)" [iconComponent]="icons.circleCheck" tone="green" hint="Confirmación, no atención" />
+        <app-stat-card label="No podrán asistir" [value]="number(vm.cannotAttendToday)" [iconComponent]="icons.circleX" tone="red" hint="Confirmación del paciente" />
+        <app-stat-card label="Pendientes de confirmación" [value]="number(vm.pendingToday)" [iconComponent]="icons.timer" tone="amber" hint="Pendientes hoy" />
+        <app-stat-card label="Recordatorios CRED" [value]="number(vm.totalReminders)" [iconComponent]="icons.bell" tone="green" hint="Total disponible" />
+        <app-stat-card label="Importaciones recientes" [value]="vm.recentImports.length" [iconComponent]="icons.fileUp" tone="purple" hint="Últimos lotes" />
       </section>
 
       <section class="dashboard-grid">
