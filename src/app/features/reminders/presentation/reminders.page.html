@@ -32,7 +32,11 @@
                     <td><app-status-badge kind="reminder" [value]="row.reminder.status" /></td>
                     <td>{{ row.reminder.templateId ? 'Plantilla vinculada' : '-' }}</td>
                     <td>{{ purpose(row.reminder.purpose) }}</td>
-                    <td><button class="icon-button" type="button" (click)="selected.set(row.reminder)" aria-label="Ver detalle">⌕</button></td>
+                    <td>
+                      <button class="icon-button" type="button" (click)="selected.set(row.reminder)" aria-label="Ver detalle">
+                        <svg lucideEye size="17" aria-hidden="true"></svg>
+                      </button>
+                    </td>
                   </tr>
                 }
               </tbody>

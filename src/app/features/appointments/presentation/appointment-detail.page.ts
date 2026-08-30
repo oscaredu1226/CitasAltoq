@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { LucideArrowLeft, LucideUserRound } from '@lucide/angular';
 import { catchError, forkJoin, of, switchMap } from 'rxjs';
 import { formatDateOnly, formatOffsetDateTime } from '../../../shared/utils/date-only';
 import { purposeLabel } from '../../../shared/utils/status-mappers';
@@ -9,7 +10,7 @@ import { AppointmentDetail, AppointmentsRepository } from '../infrastructure/app
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageTitleComponent, RouterLink, StatusBadgeComponent],
+  imports: [LucideArrowLeft, LucideUserRound, PageTitleComponent, RouterLink, StatusBadgeComponent],
   templateUrl: './appointment-detail.page.html',
   styleUrl: './appointment-detail.page.css',
 })

@@ -48,9 +48,15 @@
         </aside>
       </section>
       <div class="bottom-actions">
-        <a class="button" routerLink="/citas">← Volver a listado</a>
+        <a class="button" routerLink="/citas">
+          <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
+          Volver a listado
+        </a>
         @if (patient(); as p) {
-          <a class="button button--primary" [routerLink]="['/pacientes', p.id]">Ver paciente</a>
+          <a class="button button--primary" [routerLink]="['/pacientes', p.id]">
+            <svg lucideUserRound size="16" aria-hidden="true"></svg>
+            Ver paciente
+          </a>
         }
       </div>
     }

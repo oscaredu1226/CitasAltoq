@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { LucideEye } from '@lucide/angular';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
 import { formatOffsetDateTime } from '../../../shared/utils/date-only';
@@ -16,7 +17,7 @@ interface ReminderRow {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyStateComponent, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
+  imports: [EmptyStateComponent, LucideEye, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
   templateUrl: './reminders.page.html',
   styleUrl: './reminders.page.css',
 })
