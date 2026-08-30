@@ -13,4 +13,8 @@ describe('status mappers', () => {
   it('translates reminder purpose', () => {
     expect(purposeLabel('CRED_APPOINTMENT_CONFIRMATION')).toBe('Confirmación de cita CRED');
   });
+
+  it('labels import batches ready for confirmation as prepared', () => {
+    expect(statusView('import', 'READY')).toEqual({ label: 'Preparada', tone: 'blue' });
+  });
 });

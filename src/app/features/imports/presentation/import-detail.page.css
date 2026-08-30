@@ -1,3 +1,44 @@
 :host {
   display: contents;
 }
+
+.technical-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.technical-grid span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.technical-grid small {
+  color: var(--color-muted);
+}
+
+.technical-grid strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.technical-grid__wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 1180px) {
+  .technical-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .technical-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .technical-grid__wide {
+    grid-column: auto;
+  }
+}

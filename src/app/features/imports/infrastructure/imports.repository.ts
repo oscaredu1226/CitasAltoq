@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { filter, map, Observable } from 'rxjs';
 import { API_CONFIG, apiUrl } from '../../../core/config/api.config';
 import { PageResponse } from '../../../core/http/page-response';
 
@@ -88,6 +88,11 @@ export interface ImportAccepted {
   scope: ImportScope;
 }
 
+export type ImportUploadEvent =
+  | { type: 'sent' }
+  | { type: 'progress'; progress: number }
+  | { type: 'response'; preview: ImportPreview };
+
 @Injectable({ providedIn: 'root' })
 export class ImportsRepository {
   private readonly http = inject(HttpClient);
@@ -109,12 +114,38 @@ export class ImportsRepository {
     return this.http.post<ImportScopesResponse>(apiUrl(this.config, '/api/cred/imports/scopes'), formData);
   }
 
-  preview(file: File, scope: ImportScope): Observable<ImportPreview> {
+  preview(file: File): Observable<ImportPreview> {
+    return this.previewEvents(file).pipe(
+      filter((event): event is { type: 'response'; preview: ImportPreview } => event.type === 'response'),
+      map((event) => event.preview),
+    );
+  }
+
+  previewEvents(file: File): Observable<ImportUploadEvent> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<ImportPreview>(apiUrl(this.config, '/api/cred/imports/preview'), formData, {
-      params: scopeParams(scope),
-    });
+      observe: 'events',
+      reportProgress: true,
+    }).pipe(
+      map((event: HttpEvent<ImportPreview>) => {
+        if (event.type === HttpEventType.Sent) {
+          return { type: 'sent' } satisfies ImportUploadEvent;
+        }
+
+        if (event.type === HttpEventType.UploadProgress) {
+          const progress = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+          return { type: 'progress', progress } satisfies ImportUploadEvent;
+        }
+
+        if (event.type === HttpEventType.Response) {
+          return { type: 'response', preview: event.body! } satisfies ImportUploadEvent;
+        }
+
+        return { type: 'progress', progress: 0 } satisfies ImportUploadEvent;
+      }),
+      filter((event) => event.type !== 'progress' || event.progress > 0),
+    );
   }
 
   apply(file: File, preview: ImportPreview): Observable<ImportAccepted> {
@@ -122,18 +153,8 @@ export class ImportsRepository {
     formData.append('file', file);
     formData.append('expectedChecksum', preview.fileChecksum);
     formData.append('expectedScopeFingerprint', preview.scopeFingerprint);
-    return this.http.post<ImportAccepted>(apiUrl(this.config, '/api/cred/imports/apply'), formData, {
-      params: scopeParams(preview.scope),
-    });
+    return this.http.post<ImportAccepted>(apiUrl(this.config, '/api/cred/imports/apply'), formData);
   }
-}
-
-function scopeParams(scope: ImportScope): HttpParams {
-  return paramsFrom({
-    red: scope.red ?? undefined,
-    microred: scope.microred ?? undefined,
-    establishment: scope.establishment ?? undefined,
-  });
 }
 
 function paramsFrom(filters: Record<string, string | number | boolean | null | undefined>): HttpParams {

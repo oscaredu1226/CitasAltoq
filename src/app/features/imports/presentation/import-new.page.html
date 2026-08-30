@@ -1,38 +1,48 @@
-    <app-page-title title="Nueva importación" subtitle="Selecciona un archivo XLSX, revisa la vista previa y confirma la aplicación." />
+    <app-page-title title="Nueva importación" subtitle="Selecciona un archivo XLSX completo; el sistema reconocerá la Red, Microred y Establecimiento desde los datos." />
     <app-alert title="Importación" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'blue'" />
 
     <section class="stepper" aria-label="Pasos de importación">
-      <span class="is-done">1 Seleccionar archivo</span>
+      <span [class.is-done]="file()">1 Archivo</span>
       <span [class.is-done]="preview()">2 Vista previa</span>
-      <span [class.is-done]="acceptedBatchId()">3 Confirmar importación</span>
+      <span [class.is-done]="confirmOpen() || acceptedBatchId()">3 Confirmar</span>
+      <span [class.is-done]="state() === 'processing' || state() === 'completed'">4 Procesamiento</span>
+      <span [class.is-done]="state() === 'completed'">5 Resultado</span>
     </section>
 
     <section class="panel upload-panel">
-      <label class="drop-zone">
+      <label class="drop-zone" (dragover)="$event.preventDefault()" (drop)="dropFile($event)">
         <input type="file" accept=".xlsx" (change)="selectFile($event)" />
+        <svg lucideCloudUpload size="34" aria-hidden="true"></svg>
         <strong>{{ file()?.name || 'Seleccionar archivo XLSX' }}</strong>
-        <span>No se aceptan CSV. Revisa la vista previa antes de confirmar.</span>
+        <span>No se aceptan CSV. El archivo debe contener toda la data CRED disponible.</span>
       </label>
-      @if (admin()) {
-        <form class="filter-panel" [formGroup]="scopeForm">
-          <label>Red<input formControlName="red" /></label>
-          <label>MicroRed<input formControlName="microred" /></label>
-          <label>Establecimiento<input formControlName="establishment" /></label>
-        </form>
-      } @else {
-        <p class="info-note">Se usará el establecimiento asignado a tu usuario.</p>
-      }
-      <button class="button button--primary" type="button" (click)="analyze()" [disabled]="!file() || analyzing()">Analizar archivo</button>
+      <p class="info-note">No necesitas seleccionar Red, Microred ni Establecimiento. La vista previa se genera leyendo todo el Excel y detectando el ámbito desde cada fila.</p>
+      <div class="import-state" [class.import-state--error]="state() === 'failed'">
+        @if (state() === 'failed') {
+          <svg lucideTriangleAlert size="18" aria-hidden="true"></svg>
+        } @else {
+          <svg lucideFileSpreadsheet size="18" aria-hidden="true"></svg>
+        }
+        <span>{{ stateText() }}</span>
+      </div>
+      <div class="import-actions">
+        <a class="button" routerLink="/importaciones">
+          <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
+          Cancelar
+        </a>
+        <button class="button button--primary" type="button" (click)="analyze()" [disabled]="!canAnalyze()">Analizar archivo</button>
+        <button class="button button--primary" type="button" (click)="confirmOpen.set(true)" [disabled]="!canApply()">Aplicar importación</button>
+      </div>
     </section>
 
     @if (preview(); as p) {
       <section class="stat-grid">
-        <app-stat-card label="Filas totales" [value]="p.totalDataRows" icon="F" tone="blue" />
-        <app-stat-card label="Dentro del ámbito" [value]="p.rowsInScope" icon="A" tone="green" />
-        <app-stat-card label="Excluidas" [value]="p.rowsExcludedByScope" icon="E" tone="amber" />
-        <app-stat-card label="Procesables" [value]="p.processableSourceRows" icon="✓" tone="green" />
-        <app-stat-card label="Errores" [value]="p.sourceErrorRows" icon="!" tone="red" />
-        <app-stat-card label="Advertencias" [value]="p.sourceWarningRows" icon="W" tone="amber" />
+        <app-stat-card label="Filas totales" [value]="p.totalDataRows" [iconComponent]="icons.file" tone="blue" />
+        <app-stat-card label="Filas reconocidas" [value]="p.rowsInScope" [iconComponent]="icons.check" tone="green" />
+        <app-stat-card label="Sin reconocer" [value]="p.rowsExcludedByScope" [iconComponent]="icons.warning" tone="amber" />
+        <app-stat-card label="Procesables" [value]="p.processableSourceRows" [iconComponent]="icons.check" tone="green" />
+        <app-stat-card label="Errores" [value]="p.sourceErrorRows" [iconComponent]="icons.warning" tone="red" />
+        <app-stat-card label="Advertencias" [value]="p.sourceWarningRows" [iconComponent]="icons.warning" tone="amber" />
       </section>
       <section class="dashboard-grid">
         <article class="panel"><h2>Pacientes</h2><div class="metric-list"><span>Nuevos <strong>{{ p.newPatients }}</strong></span><span>Actualizados <strong>{{ p.updatedPatients }}</strong></span><span>Sin cambios <strong>{{ p.unchangedPatients }}</strong></span></div></article>
@@ -56,10 +66,6 @@
           <p class="info-note">Se muestran solo las primeras incidencias detectadas.</p>
         }
       </article>
-      <div class="bottom-actions">
-        <a class="button" routerLink="/importaciones">Cancelar</a>
-        <button class="button button--primary" type="button" (click)="confirmOpen.set(true)">Aplicar importación</button>
-      </div>
     }
 
     @if (confirmOpen()) {
@@ -71,6 +77,17 @@
             <button class="button" type="button" (click)="confirmOpen.set(false)">Volver</button>
             <button class="button button--primary" type="button" (click)="apply()">Confirmar importación</button>
           </div>
+        </section>
+      </div>
+    }
+
+    @if (loadingOpen()) {
+      <div class="modal-backdrop import-loading-backdrop" role="presentation">
+        <section class="modal import-loading" role="dialog" aria-modal="true" aria-live="polite" aria-label="Importación en proceso">
+          <span class="import-loading__spinner" aria-hidden="true"></span>
+          <h2>{{ stateText() }}</h2>
+          <p>{{ loadingHint() }}</p>
+          <div class="import-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
         </section>
       </div>
     }

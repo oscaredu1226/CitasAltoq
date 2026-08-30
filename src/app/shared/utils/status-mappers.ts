@@ -36,7 +36,7 @@ const consent: Record<string, StatusView> = {
 const importStatus: Record<string, StatusView> = {
   PENDING: { label: 'Pendiente', tone: 'amber' },
   VALIDATING: { label: 'Validando', tone: 'blue' },
-  READY: { label: 'Lista', tone: 'blue' },
+  READY: { label: 'Preparada', tone: 'blue' },
   PROCESSING: { label: 'Procesando', tone: 'purple' },
   COMPLETED: { label: 'Completada', tone: 'green' },
   FAILED: { label: 'Fallida', tone: 'red' },

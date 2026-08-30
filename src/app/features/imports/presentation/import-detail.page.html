@@ -3,26 +3,29 @@
         <app-status-badge kind="import" [value]="b.status" />
       </app-page-title>
       <section class="stat-grid">
-        <app-stat-card label="Filas totales" [value]="b.totalRows" icon="F" tone="blue" />
-        <app-stat-card label="Dentro del ámbito" [value]="b.rowsInScope" icon="A" tone="green" />
-        <app-stat-card label="Excluidas" [value]="b.rowsExcludedByScope" icon="E" tone="amber" />
-        <app-stat-card label="Errores" [value]="b.errorRows" icon="!" tone="red" />
-        <app-stat-card label="Pacientes nuevos" [value]="b.newPatients" icon="P" tone="green" />
-        <app-stat-card label="Actualizados" [value]="b.updatedPatients" icon="U" tone="blue" />
-        <app-stat-card label="Citas nuevas" [value]="b.newAppointments" icon="C" tone="green" />
-        <app-stat-card label="Reprogramadas" [value]="b.rescheduledAppointments" icon="R" tone="purple" />
+        <app-stat-card label="Filas totales" [value]="b.totalRows" [iconComponent]="icons.file" tone="blue" />
+        <app-stat-card label="Filas reconocidas" [value]="b.rowsInScope" [iconComponent]="icons.check" tone="green" />
+        <app-stat-card label="Sin reconocer" [value]="b.rowsExcludedByScope" [iconComponent]="icons.warning" tone="amber" />
+        <app-stat-card label="Errores" [value]="b.errorRows" [iconComponent]="icons.warning" tone="red" />
+        <app-stat-card label="Pacientes nuevos" [value]="b.newPatients" [iconComponent]="icons.users" tone="green" />
+        <app-stat-card label="Actualizados" [value]="b.updatedPatients" [iconComponent]="icons.refresh" tone="blue" />
+        <app-stat-card label="Citas nuevas" [value]="b.newAppointments" [iconComponent]="icons.calendar" tone="green" />
+        <app-stat-card label="Reprogramadas" [value]="b.rescheduledAppointments" [iconComponent]="icons.refresh" tone="purple" />
       </section>
       <article class="panel">
         <h2>Información técnica</h2>
-        <div class="info-grid">
+        <div class="technical-grid">
           <span><small>ID batch</small><strong>{{ b.id }}</strong></span>
-          <span><small>Checksum</small><strong>{{ b.fileChecksum }}</strong></span>
+          <span class="technical-grid__wide"><small>Checksum</small><strong>{{ b.fileChecksum }}</strong></span>
           <span><small>Inicio</small><strong>{{ formatDateTime(b.startedAt) }}</strong></span>
           <span><small>Fin</small><strong>{{ formatDateTime(b.finishedAt) }}</strong></span>
-          <span><small>Ámbito</small><strong>{{ scopeText(b.scope) }}</strong></span>
-          <span><small>Error</small><strong>{{ b.errorMessage || '-' }}</strong></span>
+          <span class="technical-grid__wide"><small>Ámbito detectado</small><strong>{{ scopeText(b.scope) }}</strong></span>
+          <span class="technical-grid__wide"><small>Error</small><strong>{{ b.errorMessage || '-' }}</strong></span>
         </div>
       </article>
-      <a class="button" routerLink="/importaciones">← Volver</a>
+      <a class="button" routerLink="/importaciones">
+        <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
+        Volver
+      </a>
     }
   
