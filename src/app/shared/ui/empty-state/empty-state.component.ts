@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { LucideSearchX } from '@lucide/angular';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LucideSearchX],
   selector: 'app-empty-state',
   templateUrl: './empty-state.component.html',
   styleUrl: './empty-state.component.css',

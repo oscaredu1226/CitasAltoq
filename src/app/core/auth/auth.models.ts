@@ -1,11 +1,20 @@
 export type UserRole = 'ADMIN' | 'ESTABLISHMENT_OPERATOR';
-export type AccessScopeLevel = 'GLOBAL' | 'RED' | 'MICRORED' | 'ESTABLISHMENT';
 
-export interface AccessScope {
-  level: AccessScopeLevel;
-  red: string | null;
-  microred: string | null;
-  establishment: string | null;
+export interface RedSummary {
+  id: string;
+  name: string;
+}
+
+export interface MicroredSummary {
+  id: string;
+  name: string;
+}
+
+export interface UserEstablishment {
+  id: string;
+  name: string;
+  microred: MicroredSummary;
+  red: RedSummary;
 }
 
 export interface CurrentUser {
@@ -13,8 +22,9 @@ export interface CurrentUser {
   email: string;
   displayName: string;
   active: boolean;
+  masterAdmin: boolean;
   roles: UserRole[];
-  accessScopes: AccessScope[];
+  establishment: UserEstablishment | null;
 }
 
 export interface LoginRequest {
@@ -50,6 +60,23 @@ export function isAdmin(user: CurrentUser | null): boolean {
   return user?.roles.includes('ADMIN') ?? false;
 }
 
-export function primaryScope(user: CurrentUser | null): AccessScope | null {
-  return user?.accessScopes[0] ?? null;
+export function isMasterAdmin(user: CurrentUser | null): boolean {
+  return user?.masterAdmin === true;
+}
+
+export function primaryEstablishment(user: CurrentUser | null): UserEstablishment | null {
+  return user?.establishment ?? null;
+}
+
+export function organizationLabel(user: CurrentUser | null): string {
+  if (!user) {
+    return '';
+  }
+
+  if (isAdmin(user)) {
+    return 'Acceso global';
+  }
+
+  const establishment = primaryEstablishment(user);
+  return [establishment?.name, establishment?.microred?.name, establishment?.red?.name].filter(Boolean).join(' · ');
 }

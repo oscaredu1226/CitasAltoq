@@ -43,16 +43,19 @@ export const routes: Routes = [
       {
         path: 'importaciones',
         title: 'Importaciones CRED',
+        canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () => import('./features/imports/presentation/imports.page').then((m) => m.ImportsPage),
       },
       {
         path: 'importaciones/nueva',
         title: 'Nueva importación',
+        canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () => import('./features/imports/presentation/import-new.page').then((m) => m.ImportNewPage),
       },
       {
         path: 'importaciones/:id',
         title: 'Detalle de importación',
+        canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () => import('./features/imports/presentation/import-detail.page').then((m) => m.ImportDetailPage),
       },
       {

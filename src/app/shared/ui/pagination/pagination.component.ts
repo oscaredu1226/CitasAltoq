@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LucideChevronLeft, LucideChevronRight } from '@lucide/angular';
 import { PageResponse } from '../../../core/http/page-response';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LucideChevronLeft, LucideChevronRight],
   selector: 'app-pagination',
   templateUrl: './pagination.component.html',
   styleUrl: './pagination.component.css',

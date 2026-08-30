@@ -1,5 +1,11 @@
 <article class="stat-card">
-  <div class="stat-card__icon" [class]="toneClass()">{{ icon() }}</div>
+  <div class="stat-card__icon" [class]="toneClass()">
+    @if (iconComponent(); as icon) {
+      <ng-container *ngComponentOutlet="icon" />
+    } @else {
+      <span>{{ icon() }}</span>
+    }
+  </div>
   <div>
     <p>{{ label() }}</p>
     <strong>{{ value() }}</strong>

@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { LucideBell, LucideCalendarCheck, LucideCircleCheck, LucideLayoutDashboard, LucideShieldCheck } from '@lucide/angular';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { AlertComponent, LogoComponent } from '../../../shared/ui/ui.components';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, LogoComponent, ReactiveFormsModule],
+  imports: [AlertComponent, LogoComponent, LucideBell, LucideCalendarCheck, LucideCircleCheck, LucideLayoutDashboard, LucideShieldCheck, ReactiveFormsModule],
   templateUrl: './login.page.html',
   styleUrl: './login.page.css',
 })
