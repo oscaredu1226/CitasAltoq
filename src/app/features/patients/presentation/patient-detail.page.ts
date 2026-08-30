@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { LucideArrowLeft } from '@lucide/angular';
 import { catchError, forkJoin, of, switchMap } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin } from '../../../core/auth/auth.models';
@@ -11,7 +12,7 @@ import { Patient, PatientAppointment, PatientsRepository } from '../infrastructu
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageTitleComponent, RouterLink, StatusBadgeComponent],
+  imports: [LucideArrowLeft, PageTitleComponent, RouterLink, StatusBadgeComponent],
   templateUrl: './patient-detail.page.html',
   styleUrl: './patient-detail.page.css',
 })

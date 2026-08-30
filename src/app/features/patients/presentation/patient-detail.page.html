@@ -1,4 +1,7 @@
-    <a class="back-link" routerLink="/pacientes">← Volver a la lista de pacientes</a>
+    <a class="back-link" routerLink="/pacientes">
+      <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
+      Volver a la lista de pacientes
+    </a>
     @if (patient(); as p) {
       <app-page-title [title]="p.name" [subtitle]="'Paciente registrada en CRED · ID ' + shortId(p.id)">
         <app-status-badge [value]="p.active" />
@@ -23,7 +26,7 @@
             <h2>2. Información CRED</h2>
             <div class="info-grid">
               <span><small>Establecimiento</small><strong>{{ p.establishment }}</strong></span>
-              <span><small>Microred</small><strong>{{ p.microNetwork }}</strong></span>
+              <span><small>Microred</small><strong>{{ p.microNetwork || '-' }}</strong></span>
               <span><small>Red</small><strong>{{ p.network }}</strong></span>
               <span><small>Grupo etario</small><strong>{{ p.ageGroup }}</strong></span>
               <span class="info-grid__wide"><small>Observaciones</small><strong>{{ p.observations || 'Sin observaciones registradas.' }}</strong></span>

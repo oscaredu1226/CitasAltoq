@@ -17,7 +17,7 @@ export interface Patient {
   province: string;
   guardianContactId: string | null;
   establishment: string;
-  microNetwork: string;
+  microNetwork?: string;
   network: string;
   ageGroup: string;
   observations: string;

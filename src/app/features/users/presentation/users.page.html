@@ -1,5 +1,8 @@
-    <app-page-title title="Usuarios" subtitle="Gestión administrativa de cuentas, roles y ámbitos.">
-      <button class="button button--primary" type="button" (click)="newUser()">Crear usuario</button>
+    <app-page-title title="Usuarios" subtitle="Gestión administrativa de cuentas y establecimientos.">
+      <button class="button button--primary" type="button" (click)="newUser()">
+        <svg lucidePlus size="18" aria-hidden="true"></svg>
+        Crear usuario
+      </button>
     </app-page-title>
     <app-alert title="Usuarios" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'green'" />
     <article class="panel">
@@ -8,18 +11,26 @@
         @if (p.content.length) {
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Scope</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Establecimiento</th><th>Microred</th><th>Red</th><th>Estado</th><th>Acciones</th></tr></thead>
               <tbody>
                 @for (user of p.content; track user.id) {
                   <tr>
-                    <td>{{ user.email }}</td>
                     <td>{{ user.displayName }}</td>
+                    <td>{{ user.email }}</td>
                     <td>{{ role(user.roles[0]) }}</td>
-                    <td>{{ scopeText(user) }}</td>
+                    <td>{{ organizationColumn(user, 'establishment') }}</td>
+                    <td>{{ organizationColumn(user, 'microred') }}</td>
+                    <td>{{ organizationColumn(user, 'red') }}</td>
                     <td><app-status-badge [value]="user.active" /></td>
                     <td class="actions">
-                      <button class="button button--small" type="button" (click)="edit(user)">Editar</button>
-                      <button class="button button--small" type="button" (click)="resetPassword(user)">Restablecer contraseña</button>
+                      <button class="button button--small" type="button" (click)="edit(user)">
+                        <svg lucidePencil size="15" aria-hidden="true"></svg>
+                        Editar
+                      </button>
+                      <button class="button button--small" type="button" (click)="resetPassword(user)">
+                        <svg lucideKeyRound size="15" aria-hidden="true"></svg>
+                        Restablecer contraseña
+                      </button>
                     </td>
                   </tr>
                 }
@@ -41,18 +52,34 @@
           <label>Nombre visible<input formControlName="displayName" /></label>
           @if (!selected()) {
             <label>Contraseña<input type="password" formControlName="password" /></label>
+            <label>Confirmar contraseña<input type="password" formControlName="confirm" /></label>
           }
-          <label>Rol
-            <select formControlName="role">
+          <label>Tipo de cuenta
+            <select formControlName="accountType">
               <option value="ADMIN">Administrador</option>
               <option value="ESTABLISHMENT_OPERATOR">Operador de establecimiento</option>
             </select>
           </label>
-          <label>Red<input formControlName="red" /></label>
-          <label>MicroRed<input formControlName="microred" /></label>
-          <label>Establecimiento<input formControlName="establishment" /></label>
+          @if (creatingOperator()) {
+            <app-establishment-select
+              [disabled]="!!selected()"
+              [selectedId]="form.controls.establishmentId.value"
+              (selectedIdChange)="form.controls.establishmentId.setValue($event)"
+            />
+          } @else {
+            <p class="info-note">La cuenta administradora tendrá acceso global y no requiere establecimiento.</p>
+          }
           <label class="checkbox-row"><input type="checkbox" formControlName="active" /> Activo</label>
-          <div class="modal__actions"><button class="button" type="button" (click)="editing.set(false)">Cancelar</button><button class="button button--primary" type="submit">Guardar cambios</button></div>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="editing.set(false)">
+              <svg lucideX size="16" aria-hidden="true"></svg>
+              Cancelar
+            </button>
+            <button class="button button--primary" type="submit">
+              <svg lucideSave size="16" aria-hidden="true"></svg>
+              Guardar cambios
+            </button>
+          </div>
         </form>
       </div>
     }

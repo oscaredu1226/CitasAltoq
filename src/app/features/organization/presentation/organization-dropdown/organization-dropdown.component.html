@@ -1,0 +1,58 @@
+<div class="org-dropdown" [class.is-disabled]="disabled()" (keydown)="keydown($event)">
+  <span class="org-dropdown__label">{{ label() }}</span>
+  <button class="org-dropdown__trigger" type="button" [disabled]="disabled()" (click)="toggle()" [attr.aria-expanded]="open()">
+    <span>
+      <strong>{{ selected()?.title || placeholder() }}</strong>
+      @if (selected()?.subtitle) {
+        <small>{{ selected()?.subtitle }}</small>
+      }
+    </span>
+    @if (selectedId()) {
+      <svg lucideX size="16" aria-hidden="true" (click)="clear($event)"></svg>
+    } @else {
+      <svg lucideChevronDown size="17" aria-hidden="true"></svg>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="org-dropdown__panel">
+      <label class="org-dropdown__search">
+        <svg lucideSearch size="17" aria-hidden="true"></svg>
+        <input
+          type="search"
+          [placeholder]="searchPlaceholder()"
+          [ngModel]="search()"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="search.set($event); activeIndex.set(0)"
+        />
+      </label>
+      @if (loading()) {
+        <p>Cargando...</p>
+      } @else if (error()) {
+        <button class="org-dropdown__state" type="button" (click)="retry.emit()">Reintentar carga</button>
+      } @else if (!filtered().length) {
+        <p>{{ emptyText() }}</p>
+      } @else {
+        <div class="org-dropdown__options" role="listbox">
+          @for (option of filtered(); track option.id; let index = $index) {
+            <button
+              class="org-dropdown__option"
+              type="button"
+              role="option"
+              [class.is-active]="index === activeIndex()"
+              [class.is-selected]="option.id === selectedId()"
+              [disabled]="option.disabled"
+              [attr.aria-selected]="option.id === selectedId()"
+              (click)="choose(option)"
+            >
+              <strong>{{ option.title }}</strong>
+              @if (option.subtitle) {
+                <small>{{ option.subtitle }}</small>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

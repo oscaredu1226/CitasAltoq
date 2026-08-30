@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+.org-dropdown {
+  display: grid;
+  gap: 8px;
+  position: relative;
+}
+
+.org-dropdown__label {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.org-dropdown__trigger {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  display: flex;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.org-dropdown__trigger span,
+.org-dropdown__option {
+  min-width: 0;
+}
+
+.org-dropdown__trigger strong,
+.org-dropdown__option strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-dropdown__trigger small,
+.org-dropdown__option small {
+  color: var(--color-muted);
+  display: block;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-dropdown__panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 8px;
+  left: 0;
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 80;
+}
+
+.org-dropdown__search {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+.org-dropdown__search input {
+  border: 0;
+  min-height: 38px;
+  padding: 0;
+}
+
+.org-dropdown__options {
+  display: grid;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.org-dropdown__option,
+.org-dropdown__state {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-text);
+  padding: 10px;
+  text-align: left;
+}
+
+.org-dropdown__option.is-active,
+.org-dropdown__option:hover {
+  background: #f8fbff;
+}
+
+.org-dropdown__option.is-selected {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.org-dropdown p {
+  color: var(--color-muted);
+  margin: 0;
+  padding: 10px;
+}

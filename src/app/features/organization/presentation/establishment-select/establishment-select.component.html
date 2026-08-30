@@ -1,0 +1,20 @@
+<app-organization-dropdown
+  [label]="label()"
+  placeholder="Seleccionar establecimiento"
+  searchPlaceholder="Buscar establecimiento..."
+  emptyText="No hay establecimientos disponibles."
+  [disabled]="disabled()"
+  [loading]="loading()"
+  [error]="error()"
+  [options]="options()"
+  [selectedId]="selectedId()"
+  (selectedIdChange)="choose($event)"
+  (retry)="retry()"
+/>
+
+@if (selected(); as establishment) {
+  <p class="selected-red">
+    Microred: <strong>{{ establishment.microred.name }}</strong>
+    · Red: <strong>{{ establishment.red.name }}</strong>
+  </p>
+}

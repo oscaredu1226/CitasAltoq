@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AccessScope, UserRole } from '../../../core/auth/auth.models';
+import { UserEstablishment, UserRole } from '../../../core/auth/auth.models';
 import { API_CONFIG, apiUrl } from '../../../core/config/api.config';
 import { PageResponse } from '../../../core/http/page-response';
 
@@ -11,17 +11,19 @@ export interface AdminUser {
   displayName: string;
   active: boolean;
   roles: UserRole[];
-  accessScopes: AccessScope[];
+  establishment: UserEstablishment | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CreateUserRequest {
+export interface CreateAdminUserRequest {
   email: string;
   password: string;
   displayName: string;
-  roles: UserRole[];
-  accessScopes: AccessScope[];
+}
+
+export interface CreateOperatorUserRequest extends CreateAdminUserRequest {
+  establishmentId: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,16 +37,22 @@ export class UsersRepository {
     });
   }
 
-  create(payload: CreateUserRequest): Observable<AdminUser> {
-    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), payload);
+  createAdmin(payload: CreateAdminUserRequest): Observable<AdminUser> {
+    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), {
+      ...payload,
+      role: 'ADMIN',
+    });
+  }
+
+  createOperator(payload: CreateOperatorUserRequest): Observable<AdminUser> {
+    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), {
+      ...payload,
+      role: 'ESTABLISHMENT_OPERATOR',
+    });
   }
 
   update(id: string, payload: Pick<AdminUser, 'email' | 'displayName' | 'active'>): Observable<AdminUser> {
     return this.http.put<AdminUser>(apiUrl(this.config, `/api/admin/users/${id}`), payload);
-  }
-
-  updateAuthorization(id: string, payload: Pick<AdminUser, 'roles' | 'accessScopes'>): Observable<AdminUser> {
-    return this.http.put<AdminUser>(apiUrl(this.config, `/api/admin/users/${id}/authorization`), payload);
   }
 
   resetPassword(id: string, password: string): Observable<void> {

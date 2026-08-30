@@ -12,6 +12,33 @@
           <option value="false">Inactivo</option>
         </select>
       </label>
+      @if (admin()) {
+        <app-organization-dropdown
+          label="Red"
+          placeholder="Todas"
+          searchPlaceholder="Buscar Red..."
+          [options]="redOptions()"
+          [selectedId]="form.controls.redId.value"
+          (selectedIdChange)="selectRed($event)"
+        />
+        <app-organization-dropdown
+          label="Microred"
+          placeholder="Todas"
+          searchPlaceholder="Buscar Microred..."
+          emptyText="Selecciona una Red o no hay Microredes disponibles."
+          [disabled]="!form.controls.redId.value"
+          [options]="microredOptions()"
+          [selectedId]="form.controls.microredId.value"
+          (selectedIdChange)="selectMicrored($event)"
+        />
+        <app-establishment-select
+          [redId]="form.controls.redId.value || null"
+          [microredId]="form.controls.microredId.value || null"
+          [disabled]="!form.controls.microredId.value"
+          [selectedId]="form.controls.establishmentId.value"
+          (selectedIdChange)="form.controls.establishmentId.setValue($event)"
+        />
+      }
       <div class="filter-panel__actions">
         <button class="button button--primary" type="button" (click)="load(0)">Aplicar filtros</button>
         <button class="button" type="button" (click)="clear()">Limpiar filtros</button>
@@ -32,7 +59,7 @@
           <table>
             <thead>
               <tr>
-                <th>Documento</th><th>Nombre</th><th>Fecha de nacimiento</th><th>Historia clínica</th><th>Establecimiento</th><th>Estado</th><th>Contacto</th><th>Acción</th>
+                <th>Documento</th><th>Nombre</th><th>Fecha de nacimiento</th><th>Historia clínica</th><th>Establecimiento</th><th>Microred</th><th>Red</th><th>Estado</th><th>Contacto</th><th>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -43,6 +70,8 @@
                   <td>{{ formatDate(patient.birthDate) }}</td>
                   <td>{{ patient.clinicalHistory }}</td>
                   <td>{{ patient.establishment }}</td>
+                  <td>{{ patient.microNetwork || '-' }}</td>
+                  <td>{{ patient.network }}</td>
                   <td><app-status-badge [value]="patient.active" /></td>
                   <td>
                     @if (patient.guardianContactId) {

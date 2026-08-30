@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+
+.selected-red {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin: 0;
+  padding-top: 6px;
+}
