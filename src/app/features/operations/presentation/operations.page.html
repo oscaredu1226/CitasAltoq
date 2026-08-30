@@ -1,4 +1,5 @@
-    <app-page-title title="Configuración" subtitle="Estado operativo informativo de los servicios CRED." />
+    <app-page-title title="Configuración" subtitle="Estado operativo y alcance de envío de recordatorios CRED." />
+    <app-alert title="Configuración" [message]="error() || message()" [tone]="error() ? 'red' : 'green'" />
     @if (status(); as s) {
       <section class="stat-grid stat-grid--five">
         <article class="panel status-card"><h2>WhatsApp</h2><app-status-badge [value]="s.whatsAppEnabled" /></article>
@@ -6,6 +7,71 @@
         <article class="panel status-card"><h2>Sincronización CRED</h2><app-status-badge [value]="s.credSyncEnabled" /></article>
         <article class="panel status-card"><h2>Plantilla CRED</h2><app-status-badge [value]="s.credTemplateEnabled" /></article>
         <article class="panel status-card"><h2>Despacho CRED</h2><app-status-badge [value]="s.credDispatchEnabled" /></article>
+      </section>
+    }
+
+    @if (masterAdmin()) {
+      <section class="panel audience-panel">
+        <div class="audience-header">
+          <div>
+            <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Administrador maestro</span>
+            <h2>Establecimientos habilitados para recordatorios</h2>
+            <p>La importación conserva todos los registros. Esta selección controla únicamente la creación y el envío de recordatorios.</p>
+          </div>
+          <small>Última actualización: {{ updatedAt() }}</small>
+        </div>
+
+        <div class="mode-switch" role="group" aria-label="Alcance de recordatorios">
+          <button type="button" [class.is-active]="mode() === 'SELECTED'" (click)="selectMode('SELECTED')">
+            Establecimientos seleccionados
+          </button>
+          <button type="button" [class.is-active]="mode() === 'ALL'" (click)="selectMode('ALL')">
+            Todos los establecimientos
+          </button>
+        </div>
+
+        @if (mode() === 'SELECTED') {
+          <div class="selection-summary">
+            <strong>{{ selectedIds().size }}</strong>
+            <span>{{ selectedIds().size === 1 ? 'establecimiento habilitado' : 'establecimientos habilitados' }}</span>
+          </div>
+
+          @if (organizations.loading() || loading()) {
+            <div class="audience-loading"><span class="spinner"></span> Cargando establecimientos...</div>
+          } @else if (organizations.error()) {
+            <app-alert title="Catálogo de establecimientos" [message]="organizations.error()" tone="red" />
+          } @else {
+            <div class="establishment-list">
+              @for (establishment of organizations.establishments(); track establishment.id) {
+                <label class="establishment-row">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(establishment.id)"
+                    (change)="toggleEstablishment(establishment.id, $any($event.target).checked)"
+                  />
+                  <span>
+                    <strong>{{ establishment.name }}</strong>
+                    <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
+                  </span>
+                </label>
+              } @empty {
+                <p class="muted">No hay establecimientos disponibles en el catálogo.</p>
+              }
+            </div>
+          }
+        } @else {
+          <div class="all-establishments-notice">
+            <strong>Envío masivo habilitado</strong>
+            <span>Los recordatorios CRED podrán generarse y enviarse para cualquier establecimiento importado.</span>
+          </div>
+        }
+
+        <div class="audience-actions">
+          <button class="button button--primary" type="button" [disabled]="!canSave()" (click)="save()">
+            <svg lucideSave size="17" aria-hidden="true"></svg>
+            {{ saving() ? 'Guardando...' : 'Guardar alcance' }}
+          </button>
+        </div>
       </section>
     }
   

@@ -11,6 +11,29 @@ export interface OperationsStatus {
   credDispatchEnabled: boolean;
 }
 
+export type ReminderAudienceMode = 'SELECTED' | 'ALL';
+
+export interface ReminderAudienceEstablishment {
+  id: number;
+  name: string;
+  active: boolean;
+  microredId: number;
+  microredName: string;
+  redId: number;
+  redName: string;
+}
+
+export interface ReminderAudience {
+  mode: ReminderAudienceMode;
+  selectedEstablishments: ReminderAudienceEstablishment[];
+  updatedAt: string;
+}
+
+export interface UpdateReminderAudienceRequest {
+  mode: ReminderAudienceMode;
+  establishmentIds: number[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class OperationsRepository {
   private readonly http = inject(HttpClient);
@@ -18,5 +41,13 @@ export class OperationsRepository {
 
   status(): Observable<OperationsStatus> {
     return this.http.get<OperationsStatus>(apiUrl(this.config, '/api/cred/operations/status'));
+  }
+
+  reminderAudience(): Observable<ReminderAudience> {
+    return this.http.get<ReminderAudience>(apiUrl(this.config, '/api/admin/cred-reminder-audience'));
+  }
+
+  updateReminderAudience(request: UpdateReminderAudienceRequest): Observable<ReminderAudience> {
+    return this.http.put<ReminderAudience>(apiUrl(this.config, '/api/admin/cred-reminder-audience'), request);
   }
 }
