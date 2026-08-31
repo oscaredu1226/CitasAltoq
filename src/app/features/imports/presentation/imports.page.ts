@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideCircleCheck, LucideCircleX, LucideFileUp, LucideRefreshCw, LucideUploadCloud } from '@lucide/angular';
+import { finalize } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
 import { formatOffsetDateTime } from '../../../shared/utils/date-only';
 import { EmptyStateComponent, PageTitleComponent, PaginationComponent, StatCardComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
@@ -15,6 +16,7 @@ import { ImportBatch, ImportsRepository } from '../infrastructure/imports.reposi
 export class ImportsPage {
   private readonly repo = inject(ImportsRepository);
   readonly page = signal<PageResponse<ImportBatch> | null>(null);
+  readonly loading = signal(false);
   readonly icons = {
     check: LucideCircleCheck,
     fileUp: LucideFileUp,
@@ -28,7 +30,8 @@ export class ImportsPage {
   }
 
   load(page: number): void {
-    this.repo.list(page, 8).subscribe((response) => this.page.set(response));
+    this.loading.set(true);
+    this.repo.list(page, 8).pipe(finalize(() => this.loading.set(false))).subscribe((response) => this.page.set(response));
   }
 
   count(status: string): number {

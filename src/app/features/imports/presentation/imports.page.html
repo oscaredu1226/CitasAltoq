@@ -4,7 +4,17 @@
         Nueva importación
       </a>
     </app-page-title>
-    @if (page(); as p) {
+    @if (loading()) {
+      <section class="skeleton-grid stat-grid stat-grid--four">
+        @for (_ of [1, 2, 3, 4]; track _) {
+          <div class="skeleton-card"></div>
+        }
+      </section>
+      <article class="panel">
+        <div class="panel__header"><h2>Historial de importaciones</h2></div>
+        <div class="skeleton-table"></div>
+      </article>
+    } @else if (page(); as p) {
       <section class="stat-grid stat-grid--four">
         <app-stat-card label="Importaciones" [value]="p.totalElements" [iconComponent]="icons.upload" tone="green" />
         <app-stat-card label="Completadas visibles" [value]="count('COMPLETED')" [iconComponent]="icons.check" tone="green" />

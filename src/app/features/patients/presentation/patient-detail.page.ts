@@ -25,12 +25,17 @@ export class PatientDetailPage {
   readonly patient = signal<Patient | null>(null);
   readonly contact = signal<Contact | null>(null);
   readonly appointments = signal<PatientAppointment[]>([]);
+  readonly loading = signal(true);
   readonly admin = computed(() => isAdmin(this.auth.session.user()));
 
   constructor() {
     this.route.paramMap.pipe(
       switchMap((params) => {
         const id = params.get('id')!;
+        this.loading.set(true);
+        this.patient.set(null);
+        this.contact.set(null);
+        this.appointments.set([]);
         return forkJoin({
           patient: this.patients.get(id),
           appointments: this.patients.appointments(id, 0, 8).pipe(catchError(() => of({ content: [] }))),
@@ -44,7 +49,13 @@ export class PatientDetailPage {
         }
         return of(null);
       }),
-    ).subscribe((contact) => this.contact.set(contact));
+    ).subscribe({
+      next: (contact) => {
+        this.contact.set(contact);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   formatDate = formatDateOnly;

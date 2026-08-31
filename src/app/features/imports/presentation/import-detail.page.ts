@@ -24,6 +24,7 @@ export class ImportDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly repo = inject(ImportsRepository);
   readonly batch = signal<ImportBatch | null>(null);
+  readonly loading = signal(true);
   readonly icons = {
     calendar: LucideCalendarDays,
     check: LucideCircleCheck,
@@ -34,7 +35,19 @@ export class ImportDetailPage {
   };
 
   constructor() {
-    this.route.paramMap.pipe(switchMap((params) => this.repo.get(params.get('id')!))).subscribe((batch) => this.batch.set(batch));
+    this.route.paramMap.pipe(
+      switchMap((params) => {
+        this.loading.set(true);
+        this.batch.set(null);
+        return this.repo.get(params.get('id')!);
+      }),
+    ).subscribe({
+      next: (batch) => {
+        this.batch.set(batch);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   formatDateTime = formatOffsetDateTime;

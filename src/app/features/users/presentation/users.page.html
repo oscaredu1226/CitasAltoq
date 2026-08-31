@@ -14,7 +14,9 @@
     <app-alert title="Usuarios" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'green'" />
     <article class="panel">
       <div class="panel__header"><h2>Listado de usuarios</h2></div>
-      @if (page(); as p) {
+      @if (loading()) {
+        <div class="skeleton-table"></div>
+      } @else if (page(); as p) {
         @if (p.content.length) {
           <div class="table-wrap">
             <table>

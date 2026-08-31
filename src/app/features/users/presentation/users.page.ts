@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideKeyRound, LucidePencil, LucidePlus, LucideSave, LucideX } from '@lucide/angular';
+import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
@@ -39,6 +40,7 @@ export class UsersPage {
   private readonly mfa = inject(MfaStore);
   private readonly fb = inject(FormBuilder);
   readonly page = signal<PageResponse<AdminUser> | null>(null);
+  readonly loading = signal(false);
   readonly selected = signal<AdminUser | null>(null);
   readonly passwordUser = signal<AdminUser | null>(null);
   readonly editing = signal(false);
@@ -68,7 +70,8 @@ export class UsersPage {
   }
 
   load(page: number): void {
-    this.repo.list(page, 10).subscribe((response) => this.page.set(response));
+    this.loading.set(true);
+    this.repo.list(page, 10).pipe(finalize(() => this.loading.set(false))).subscribe((response) => this.page.set(response));
   }
 
   newUser(): void {

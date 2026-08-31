@@ -1,5 +1,24 @@
     <app-page-title title="Detalle de cita" subtitle="La cita usa fecha CRED sin hora." />
-    @if (detail(); as d) {
+    @if (loading()) {
+      <section class="skeleton-detail">
+        <section class="summary-grid">
+          @for (_ of [1, 2, 3, 4, 5]; track _) {
+            <div class="skeleton-card"></div>
+          }
+        </section>
+        <section class="detail-layout">
+          <div class="detail-main">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+          <aside class="quick-panel">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+          </aside>
+        </section>
+      </section>
+    } @else if (detail(); as d) {
       <section class="summary-grid">
         <article class="summary-card"><small>Paciente</small><strong>{{ patient()?.name || 'Paciente no disponible' }}</strong><span>DNI: {{ patient()?.documentNumber || '-' }}</span></article>
         <article class="summary-card"><small>Fecha</small><strong>{{ formatDate(d.appointment.scheduledDate) }}</strong></article>

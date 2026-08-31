@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { formatOffsetDateTime } from '../../../shared/utils/date-only';
@@ -18,6 +19,7 @@ export class ContactsPage {
   private readonly fb = inject(FormBuilder);
 
   readonly page = signal<PageResponse<Contact> | null>(null);
+  readonly loading = signal(false);
   readonly selected = signal<Contact | null>(null);
   readonly editing = signal(false);
   readonly consentContact = signal<Contact | null>(null);
@@ -36,7 +38,8 @@ export class ContactsPage {
   }
 
   load(page: number): void {
-    this.repo.list(page, 10).subscribe((response) => this.page.set(response));
+    this.loading.set(true);
+    this.repo.list(page, 10).pipe(finalize(() => this.loading.set(false))).subscribe((response) => this.page.set(response));
   }
 
   newContact(): void {

@@ -1,4 +1,17 @@
-    @if (batch(); as b) {
+    @if (loading()) {
+      <section class="skeleton-detail">
+        <div class="skeleton-line skeleton-line--wide"></div>
+        <section class="stat-grid">
+          @for (_ of [1, 2, 3, 4, 5, 6, 7, 8]; track _) {
+            <div class="skeleton-card"></div>
+          }
+        </section>
+        <article class="panel">
+          <div class="skeleton-line skeleton-line--wide"></div>
+          <div class="skeleton-card"></div>
+        </article>
+      </section>
+    } @else if (batch(); as b) {
       <app-page-title [title]="b.fileName" subtitle="Detalle read-only del lote importado.">
         <app-status-badge kind="import" [value]="b.status" />
       </app-page-title>

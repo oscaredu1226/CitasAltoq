@@ -2,7 +2,24 @@
       <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
       Volver a la lista de pacientes
     </a>
-    @if (patient(); as p) {
+    @if (loading()) {
+      <section class="skeleton-detail">
+        <div class="skeleton-line skeleton-line--wide"></div>
+        <section class="detail-layout">
+          <div class="detail-main">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-table"></div>
+          </div>
+          <aside class="quick-panel">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+          </aside>
+        </section>
+      </section>
+    } @else if (patient(); as p) {
       <app-page-title [title]="p.name" [subtitle]="'Paciente registrada en CRED · ID ' + shortId(p.id)">
         <app-status-badge [value]="p.active" />
       </app-page-title>

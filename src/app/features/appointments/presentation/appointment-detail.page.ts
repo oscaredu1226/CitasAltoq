@@ -22,10 +22,17 @@ export class AppointmentDetailPage {
   readonly detail = signal<AppointmentDetail | null>(null);
   readonly patient = signal<Patient | null>(null);
   readonly timeline = signal<AppointmentDetail['appointment'][]>([]);
+  readonly loading = signal(true);
 
   constructor() {
     this.route.paramMap.pipe(
-      switchMap((params) => this.repo.get(params.get('id')!)),
+      switchMap((params) => {
+        this.loading.set(true);
+        this.detail.set(null);
+        this.patient.set(null);
+        this.timeline.set([]);
+        return this.repo.get(params.get('id')!);
+      }),
       switchMap((detail) => {
         this.detail.set(detail);
         this.timeline.set([detail.appointment]);
@@ -36,11 +43,15 @@ export class AppointmentDetailPage {
             : of(null),
         });
       }),
-    ).subscribe(({ patient, previous }) => {
-      this.patient.set(patient);
-      if (previous) {
-        this.timeline.set([this.detail()!.appointment, previous.appointment]);
-      }
+    ).subscribe({
+      next: ({ patient, previous }) => {
+        this.patient.set(patient);
+        if (previous) {
+          this.timeline.set([this.detail()!.appointment, previous.appointment]);
+        }
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
     });
   }
 
