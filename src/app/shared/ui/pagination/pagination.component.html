@@ -5,7 +5,21 @@
       <button class="icon-button" type="button" (click)="goTo.emit(p.page - 1)" [disabled]="p.page <= 0" aria-label="Página anterior">
         <svg lucideChevronLeft size="18" aria-hidden="true"></svg>
       </button>
-      <strong>{{ p.page + 1 }}</strong>
+      @for (item of pages(p); track trackPage($index, item)) {
+        @if (item === 'ellipsis') {
+          <span class="pagination__ellipsis" aria-hidden="true">...</span>
+        } @else {
+          <button
+            class="pagination__page"
+            type="button"
+            [class.is-active]="item === p.page"
+            [attr.aria-current]="item === p.page ? 'page' : null"
+            (click)="goTo.emit(item)"
+          >
+            {{ item + 1 }}
+          </button>
+        }
+      }
       <button class="icon-button" type="button" (click)="goTo.emit(p.page + 1)" [disabled]="p.page + 1 >= p.totalPages" aria-label="Página siguiente">
         <svg lucideChevronRight size="18" aria-hidden="true"></svg>
       </button>

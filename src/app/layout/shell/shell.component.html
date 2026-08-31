@@ -1,8 +1,13 @@
     <div class="app-shell" [class.sidebar-open]="sidebarOpen()" [class.sidebar-collapsed]="sidebarCollapsed()">
       <aside class="sidebar">
-        <a class="sidebar__brand" routerLink="/dashboard" aria-label="Ir al dashboard" (click)="closeSidebarOnNavigation()">
-          <app-logo />
-        </a>
+        <div class="sidebar__header">
+          <a class="sidebar__brand" routerLink="/dashboard" aria-label="Ir al dashboard" (click)="closeSidebarOnNavigation()">
+            <app-logo />
+          </a>
+          <button class="icon-button sidebar-toggle" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen() || !sidebarCollapsed()" aria-label="Alternar menú lateral">
+            <svg lucideMenu size="20" aria-hidden="true"></svg>
+          </button>
+        </div>
         <nav class="sidebar__nav" aria-label="Principal">
           @for (item of visibleNav(); track item.path) {
             <a [routerLink]="item.path" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }" (click)="closeSidebarOnNavigation()">
@@ -11,44 +16,13 @@
             </a>
           }
         </nav>
-        <div class="session-card">
-          <svg lucideShieldCheck size="20" aria-hidden="true"></svg>
-          <strong>Acceso protegido</strong>
-          <span>Sesión activa</span>
-          @if (organizationText(); as scope) {
-            <small>{{ scope }}</small>
-          }
-        </div>
       </aside>
 
       <div class="shell-main">
         <header class="topbar">
-          <button class="icon-button menu-button" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen() || sidebarCollapsed()" aria-label="Alternar menú">
+          <button class="icon-button menu-button mobile-menu-button" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen()" aria-label="Abrir menú lateral">
             <svg lucideMenu size="20" aria-hidden="true"></svg>
           </button>
-          <form class="global-search" role="search" (submit)="search(searchInput.value); $event.preventDefault()">
-            <button class="global-search__submit" type="submit" aria-label="Buscar paciente">
-              <svg lucideSearch size="18" aria-hidden="true"></svg>
-            </button>
-            <input #searchInput type="search" placeholder="Buscar documento de paciente..." aria-label="Buscar paciente por documento" (keydown.enter)="search(searchInput.value); $event.preventDefault()" />
-            <kbd>Ctrl + K</kbd>
-          </form>
-          <div class="notification-menu" (click)="$event.stopPropagation()">
-            <button class="icon-button" type="button" (click)="toggleNotifications($event)" [attr.aria-expanded]="notificationsOpen()" aria-label="Notificaciones">
-              <svg lucideBell size="20" aria-hidden="true"></svg>
-              <span class="notification-dot">{{ notifications().length }}</span>
-            </button>
-            @if (notificationsOpen()) {
-              <div class="notification-panel" role="menu" aria-label="Notificaciones">
-                @for (item of notifications(); track item.label) {
-                  <button type="button" role="menuitem" (click)="openNotification(item)">
-                    <strong>{{ item.label }}</strong>
-                    <span>{{ item.detail }}</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
           <div class="user-menu">
             <div class="avatar" aria-hidden="true">{{ initials() }}</div>
             <div>
