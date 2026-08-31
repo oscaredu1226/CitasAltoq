@@ -13,14 +13,12 @@
         <app-stat-card label="Reprogramadas" [value]="b.rescheduledAppointments" [iconComponent]="icons.refresh" tone="purple" />
       </section>
       <article class="panel">
-        <h2>Información técnica</h2>
+        <h2>Resumen de procesamiento</h2>
         <div class="technical-grid">
-          <span><small>ID batch</small><strong>{{ b.id }}</strong></span>
-          <span class="technical-grid__wide"><small>Checksum</small><strong>{{ b.fileChecksum }}</strong></span>
           <span><small>Inicio</small><strong>{{ formatDateTime(b.startedAt) }}</strong></span>
           <span><small>Fin</small><strong>{{ formatDateTime(b.finishedAt) }}</strong></span>
           <span class="technical-grid__wide"><small>Ámbito detectado</small><strong>{{ scopeText(b.scope) }}</strong></span>
-          <span class="technical-grid__wide"><small>Error</small><strong>{{ b.errorMessage || '-' }}</strong></span>
+          <span class="technical-grid__wide"><small>Resultado</small><strong>{{ importResult(b) }}</strong></span>
         </div>
       </article>
       <a class="button" routerLink="/importaciones">

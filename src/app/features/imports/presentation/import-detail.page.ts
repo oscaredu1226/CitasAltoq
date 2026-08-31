@@ -42,4 +42,16 @@ export class ImportDetailPage {
   scopeText(scope: ImportBatch['scope']): string {
     return [scope.establishment, scope.microred, scope.red].filter(Boolean).join(' · ') || 'Global';
   }
+
+  importResult(batch: ImportBatch): string {
+    if (batch.status === 'COMPLETED') {
+      return 'La importación terminó correctamente.';
+    }
+
+    if (batch.status === 'FAILED') {
+      return 'La importación no pudo completarse. Revisa las incidencias del archivo y vuelve a intentarlo.';
+    }
+
+    return 'La importación está siendo procesada por el servidor.';
+  }
 }

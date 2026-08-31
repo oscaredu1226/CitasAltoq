@@ -15,3 +15,19 @@ export function apiUrl(config: ApiConfig, path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalizedPath}`;
 }
+
+export function isApiRequest(config: ApiConfig, requestUrl: string): boolean {
+  const base = config.apiBaseUrl.replace(/\/$/, '');
+
+  if (!base) {
+    return requestUrl.startsWith('/api/');
+  }
+
+  try {
+    const api = new URL(base, globalThis.location?.origin);
+    const request = new URL(requestUrl, globalThis.location?.origin);
+    return request.origin === api.origin && request.pathname.startsWith('/api/');
+  } catch {
+    return false;
+  }
+}

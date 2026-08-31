@@ -1,11 +1,11 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { API_CONFIG } from '../config/api.config';
+import { API_CONFIG, isApiRequest } from '../config/api.config';
 
 export const requestTracingInterceptor: HttpInterceptorFn = (request, next) => {
-  const { apiBaseUrl } = inject(API_CONFIG);
+  const config = inject(API_CONFIG);
 
-  if (!request.url.startsWith(apiBaseUrl)) {
+  if (!isApiRequest(config, request.url)) {
     return next(request);
   }
 

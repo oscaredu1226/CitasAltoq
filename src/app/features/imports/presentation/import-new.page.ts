@@ -207,7 +207,7 @@ export class ImportNewPage {
 
         if (batch.status === 'FAILED') {
           this.state.set('failed');
-          this.message.set(batch.errorMessage || 'La importación falló durante el procesamiento.');
+          this.message.set('La importación no pudo completarse. Revisa las incidencias del archivo y vuelve a intentarlo.');
           this.error.set(true);
         }
       },
