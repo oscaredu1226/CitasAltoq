@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { mapApiError } from '../http/error-message.mapper';
 import { AuthApiRepository } from './auth.repository';
-import { CurrentUser } from './auth.models';
+import { CurrentUser, normalizeCurrentUser } from './auth.models';
 import { SessionStore } from './session.store';
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +20,7 @@ export class AuthFacade {
         this.session.setSession({ accessToken: response.accessToken, expiresAt, remember });
         return this.api.me();
       }),
-      tap((user) => this.session.setUser(user)),
+      tap((user) => this.session.setUser(normalizeCurrentUser(user))),
       catchError((error) => {
         this.session.clear();
         return throwError(() => mapApiError(error).message);
@@ -39,7 +39,7 @@ export class AuthFacade {
 
     this.session.setRestoring(true);
     return this.api.me().pipe(
-      tap((user) => this.session.setUser(user)),
+      tap((user) => this.session.setUser(normalizeCurrentUser(user))),
       map(() => true),
       catchError((error: unknown) => {
         if (error instanceof HttpErrorResponse && error.status === 401) {

@@ -27,6 +27,12 @@ export interface CurrentUser {
   establishment: UserEstablishment | null;
 }
 
+export type CurrentUserResponse = Partial<CurrentUser> & {
+  display_name?: string;
+  master_admin?: boolean;
+  isMasterAdmin?: boolean;
+};
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -62,6 +68,18 @@ export function isAdmin(user: CurrentUser | null): boolean {
 
 export function isMasterAdmin(user: CurrentUser | null): boolean {
   return user?.masterAdmin === true;
+}
+
+export function normalizeCurrentUser(user: CurrentUserResponse): CurrentUser {
+  return {
+    id: String(user.id ?? ''),
+    email: String(user.email ?? ''),
+    displayName: String(user.displayName ?? user.display_name ?? ''),
+    active: user.active === true,
+    masterAdmin: user.masterAdmin === true || user.master_admin === true || user.isMasterAdmin === true,
+    roles: user.roles ?? [],
+    establishment: user.establishment ?? null,
+  };
 }
 
 export function primaryEstablishment(user: CurrentUser | null): UserEstablishment | null {

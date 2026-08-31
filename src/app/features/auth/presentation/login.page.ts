@@ -3,11 +3,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideBell, LucideCalendarCheck, LucideCircleCheck, LucideLayoutDashboard, LucideShieldCheck } from '@lucide/angular';
 import { AuthFacade } from '../../../core/auth/auth.facade';
-import { AlertComponent, LogoComponent } from '../../../shared/ui/ui.components';
+import { AlertComponent, FieldErrorComponent, LogoComponent } from '../../../shared/ui/ui.components';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, LogoComponent, LucideBell, LucideCalendarCheck, LucideCircleCheck, LucideLayoutDashboard, LucideShieldCheck, ReactiveFormsModule],
+  imports: [AlertComponent, FieldErrorComponent, LogoComponent, LucideBell, LucideCalendarCheck, LucideCircleCheck, LucideLayoutDashboard, LucideShieldCheck, ReactiveFormsModule],
   templateUrl: './login.page.html',
   styleUrl: './login.page.css',
 })
@@ -19,6 +19,7 @@ export class LoginPage {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly forgotMessage = signal('');
+  readonly legalDialog = signal<'terms' | 'privacy' | null>(null);
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
@@ -28,6 +29,9 @@ export class LoginPage {
   submit(): void {
     if (this.form.invalid || this.loading()) {
       this.form.markAllAsTouched();
+      if (!this.loading()) {
+        this.error.set('Completa los campos requeridos antes de iniciar sesión.');
+      }
       return;
     }
 

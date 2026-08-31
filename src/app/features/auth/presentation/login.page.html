@@ -8,10 +8,12 @@
             <label>
               Correo electrónico
               <input type="email" formControlName="email" placeholder="Ingresa tu correo electrónico" autocomplete="username" />
+              <app-field-error [control]="form.controls.email" />
             </label>
             <label>
               Contraseña
               <input type="password" formControlName="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" />
+              <app-field-error [control]="form.controls.password" />
             </label>
             <label class="checkbox-row">
               <input type="checkbox" formControlName="remember" />
@@ -26,6 +28,11 @@
             <app-alert title="Credenciales incorrectas" [message]="error()" tone="red" />
             <app-alert title="Restablecimiento de contraseña" [message]="forgotMessage()" tone="blue" />
           </form>
+          <footer class="login-footer">
+            <span>© 2026 <strong>LayerOch0</strong></span>
+            <button class="link-button" type="button" (click)="legalDialog.set('terms')">Términos de uso</button>
+            <button class="link-button" type="button" (click)="legalDialog.set('privacy')">Política de privacidad</button>
+          </footer>
         </div>
         <aside class="login-card__info">
           <div class="login-illustration" aria-hidden="true">
@@ -43,10 +50,44 @@
           <ul class="feature-list">
             <li><span><svg lucideLayoutDashboard size="17"></svg></span>Dashboard operativo con datos reales</li>
             <li><span><svg lucideCalendarCheck size="17"></svg></span>Control de citas y confirmaciones</li>
-            <li><span><svg lucideBell size="17"></svg></span>Recordatorios CRED por WhatsApp o SMS</li>
+            <li><span><svg lucideBell size="17"></svg></span>Recordatorios CRED por WhatsApp</li>
             <li><span><svg lucideShieldCheck size="17"></svg></span>Acceso protegido por roles y ámbito</li>
           </ul>
         </aside>
       </section>
+
+      @if (legalDialog(); as dialog) {
+        <div class="modal-backdrop" role="presentation">
+          <section class="modal legal-modal" role="dialog" aria-modal="true" [attr.aria-label]="dialog === 'terms' ? 'Términos de uso' : 'Política de privacidad'">
+            @if (dialog === 'terms') {
+              <h2>Términos de uso</h2>
+              <p>CITAS ALTOQ es una aplicación administrativa privada para gestionar pacientes CRED, citas, contactos, importaciones y recordatorios autorizados.</p>
+              <ul>
+                <li>El acceso está permitido solo a usuarios creados por la entidad administradora y según el rol asignado.</li>
+                <li>Cada usuario debe proteger sus credenciales, cerrar sesión en equipos compartidos y usar la información solo para fines asistenciales, administrativos o de seguimiento de citas.</li>
+                <li>Está prohibido extraer, copiar, divulgar o usar datos personales para fines distintos a la gestión CRED y recordatorios configurados.</li>
+                <li>Los recordatorios por WhatsApp deben enviarse únicamente cuando exista contacto válido, consentimiento o base autorizada y establecimiento habilitado.</li>
+                <li>La entidad operadora puede registrar actividad, bloquear cuentas, corregir accesos y auditar operaciones para seguridad y trazabilidad.</li>
+                <li>El uso del sistema debe cumplir la Ley N.° 29733, su Reglamento vigente aprobado por D.S. N.° 016-2024-JUS y las políticas internas de confidencialidad de la entidad de salud.</li>
+              </ul>
+            } @else {
+              <h2>Política de privacidad</h2>
+              <p>El tratamiento de datos en CITAS ALTOQ se realiza para administrar citas CRED, pacientes, apoderados, contactos, importaciones, recordatorios y seguridad de acceso.</p>
+              <ul>
+                <li>Datos tratados: identificación del paciente y apoderado, historia clínica o código CRED, establecimiento, red, microred, citas, estado de confirmación, teléfonos, consentimientos y registros de auditoría.</li>
+                <li>Finalidades: autenticar usuarios, consultar información CRED, programar y confirmar citas, enviar recordatorios permitidos, mantener trazabilidad y proteger la operación del sistema.</li>
+                <li>Acceso: solo personal autorizado por rol y ámbito. El administrador maestro puede configurar qué establecimientos reciben recordatorios CRED.</li>
+                <li>Encargados: pueden intervenir proveedores tecnológicos necesarios para autenticación, alojamiento, mensajería WhatsApp, soporte y monitoreo, bajo deber de confidencialidad y seguridad.</li>
+                <li>Conservación: los datos se guardan durante el tiempo necesario para la finalidad operativa, auditoría, cumplimiento normativo y atención de incidencias.</li>
+                <li>Derechos ARCO: el titular o representante puede solicitar acceso, rectificación, cancelación u oposición de sus datos ante la entidad responsable del servicio.</li>
+                <li>Seguridad: se aplican controles de acceso, roles, trazabilidad y validaciones para reducir accesos no autorizados, pérdida, alteración o uso indebido.</li>
+              </ul>
+            }
+            <div class="modal__actions">
+              <button class="button button--primary" type="button" (click)="legalDialog.set(null)">Entendido</button>
+            </div>
+          </section>
+        </div>
+      }
     </main>
   

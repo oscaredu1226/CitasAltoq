@@ -5,26 +5,25 @@
 }
 
 .brand-mark {
-  align-items: center;
-  background: var(--color-primary-soft);
-  border: 1px solid rgba(11, 94, 215, 0.2);
-  border-radius: var(--radius);
-  color: var(--color-primary);
-  display: grid;
+  display: block;
   height: 3.5rem;
-  justify-items: center;
-  place-content: center;
-  position: relative;
+  overflow: hidden;
   width: 3.5rem;
 }
 
-.brand-mark svg + svg {
-  background: var(--color-primary-soft);
-  border-radius: 999px;
-  bottom: 0.55rem;
-  padding: 0.1rem;
-  position: absolute;
-  right: 0.45rem;
+.brand-mark img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.brand-mark__full {
+  display: none;
+}
+
+.brand-mark__icon {
+  display: block;
 }
 
 .brand-copy {
@@ -42,4 +41,37 @@
 .brand-copy small {
   color: var(--color-muted);
   font-size: 0.72rem;
+}
+
+:host-context(.sidebar-collapsed) {
+  display: grid;
+  gap: 0;
+  justify-items: center;
+}
+
+:host-context(.sidebar-collapsed) .brand-copy {
+  display: none;
+}
+
+:host-context(.sidebar-collapsed) .brand-mark {
+  margin: 0;
+}
+
+:host-context(.login-brand) {
+  display: grid;
+  justify-items: center;
+}
+
+:host-context(.login-brand) .brand-mark {
+  height: 7.5rem;
+  width: 10rem;
+}
+
+:host-context(.login-brand) .brand-mark__full {
+  display: block;
+}
+
+:host-context(.login-brand) .brand-mark__icon,
+:host-context(.login-brand) .brand-copy {
+  display: none;
 }

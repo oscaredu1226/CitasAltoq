@@ -1,3 +1,62 @@
 :host {
   display: contents;
 }
+
+.login-footer {
+  align-items: center;
+  color: var(--color-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px 12px;
+  justify-content: center;
+  margin-top: 22px;
+  text-align: center;
+}
+
+.login-footer strong {
+  color: var(--color-text);
+}
+
+.login-footer .link-button {
+  font-size: 12px;
+  font-weight: 750;
+  padding: 0;
+}
+
+.legal-modal {
+  max-height: min(720px, calc(100dvh - 32px));
+  overflow-y: auto;
+}
+
+.legal-modal p,
+.legal-modal ul {
+  margin: 0;
+}
+
+.legal-modal ul {
+  display: grid;
+  gap: 10px;
+  padding-left: 20px;
+}
+
+.legal-modal li {
+  color: #334155;
+}
+
+.legal-modal .modal__actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 620px) {
+  .login-footer {
+    align-items: center;
+    flex-direction: column;
+    margin-top: 18px;
+  }
+
+  .legal-modal {
+    max-height: calc(100dvh - 24px);
+    padding: 18px;
+  }
+}

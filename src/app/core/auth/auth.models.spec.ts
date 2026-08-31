@@ -1,4 +1,4 @@
-import { CurrentUser, organizationLabel } from './auth.models';
+import { CurrentUser, isMasterAdmin, normalizeCurrentUser, organizationLabel } from './auth.models';
 
 describe('auth models', () => {
   it('uses establishment and Red for the current user organization label', () => {
@@ -30,5 +30,26 @@ describe('auth models', () => {
       roles: ['ADMIN'],
       establishment: null,
     })).toBe('Acceso global');
+  });
+
+  it('normalizes master admin flags from API responses', () => {
+    expect(isMasterAdmin(normalizeCurrentUser({
+      id: 'admin-1',
+      email: 'admin@edifmisti.pe',
+      display_name: 'Administrador',
+      active: true,
+      master_admin: true,
+      roles: ['ADMIN'],
+      establishment: null,
+    }))).toBe(true);
+
+    expect(isMasterAdmin(normalizeCurrentUser({
+      id: 'admin-2',
+      email: 'admin2@edifmisti.pe',
+      displayName: 'Administrador',
+      active: true,
+      roles: ['ADMIN'],
+      establishment: null,
+    }))).toBe(false);
   });
 });
