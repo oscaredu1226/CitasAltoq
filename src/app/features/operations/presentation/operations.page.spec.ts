@@ -172,12 +172,31 @@ describe('OperationsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Habilitar todos los establecimientos');
   });
 
-  it('saves ALL mode with an empty establishmentIds payload', () => {
+  it('requires final confirmation before saving selected establishments', () => {
+    configure(true);
+
+    fixture.componentInstance.save();
+    fixture.detectChanges();
+
+    expect(repository.updateReminderAudience).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Confirmar establecimientos habilitados');
+    expect(fixture.nativeElement.textContent).toContain('Centro de Salud Mariano Melgar');
+
+    fixture.componentInstance.confirmSave();
+
+    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [1] });
+  });
+
+  it('saves ALL mode with an empty establishmentIds payload after double confirmation', () => {
     configure(true);
 
     fixture.componentInstance.selectMode('ALL');
     fixture.componentInstance.confirmAll();
     fixture.componentInstance.save();
+
+    expect(repository.updateReminderAudience).not.toHaveBeenCalled();
+
+    fixture.componentInstance.confirmSave();
 
     expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'ALL', establishmentIds: [] });
   });
@@ -187,11 +206,13 @@ describe('OperationsPage', () => {
     repository.updateReminderAudience.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 400 })));
 
     fixture.componentInstance.save();
+    fixture.componentInstance.confirmSave();
 
     expect(fixture.componentInstance.error()).toContain('configuración enviada no es válida');
 
     repository.updateReminderAudience.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 403 })));
     fixture.componentInstance.save();
+    fixture.componentInstance.confirmSave();
 
     expect(fixture.componentInstance.error()).toContain('administrador maestro');
   });

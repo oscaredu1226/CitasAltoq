@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideKeyRound, LucidePencil, LucidePlus, LucideSave, LucideX } from '@lucide/angular';
+import { AuthFacade } from '../../../core/auth/auth.facade';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
-import { roleLabel, UserRole } from '../../../core/auth/auth.models';
+import { isMasterAdmin, roleLabel, UserRole } from '../../../core/auth/auth.models';
 import { AlertComponent, EmptyStateComponent, FieldErrorComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { EstablishmentSelectComponent } from '../../organization/presentation/establishment-select/establishment-select.component';
 import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
@@ -30,6 +32,7 @@ import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
 })
 export class UsersPage {
   private readonly repo = inject(UsersRepository);
+  private readonly auth = inject(AuthFacade);
   private readonly fb = inject(FormBuilder);
   readonly page = signal<PageResponse<AdminUser> | null>(null);
   readonly selected = signal<AdminUser | null>(null);
@@ -47,6 +50,7 @@ export class UsersPage {
     establishmentId: [''],
     active: [true],
   });
+  readonly canCreateAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
   readonly passwordForm = this.fb.nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirm: ['', [Validators.required, Validators.minLength(8)]],
@@ -62,7 +66,15 @@ export class UsersPage {
 
   newUser(): void {
     this.selected.set(null);
-    this.form.reset({ email: '', displayName: '', password: '', confirm: '', accountType: 'ADMIN', establishmentId: '', active: true });
+    this.form.reset({
+      email: '',
+      displayName: '',
+      password: '',
+      confirm: '',
+      accountType: this.canCreateAdmin() ? 'ADMIN' : 'ESTABLISHMENT_OPERATOR',
+      establishmentId: '',
+      active: true,
+    });
     this.form.controls.accountType.enable();
     this.editing.set(true);
   }
@@ -86,13 +98,17 @@ export class UsersPage {
     this.applyUserValidation();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.message.set('Corrige los campos marcados antes de guardar el usuario.');
+      const accountErrors = this.form.controls.accountType.errors;
+      this.message.set(accountErrors?.['forbiddenAdmin']
+        ? 'Solo el superadministrador puede crear cuentas administradoras.'
+        : 'Corrige los campos marcados antes de guardar el usuario.');
       this.error.set(true);
       return;
     }
 
     const value = this.form.getRawValue();
     const selected = this.selected();
+    const establishmentId = Number(value.establishmentId);
 
     const request = selected
       ? this.repo.update(selected.id, { email: value.email, displayName: value.displayName, active: value.active })
@@ -102,14 +118,14 @@ export class UsersPage {
             email: value.email,
             displayName: value.displayName,
             password: value.password,
-            establishmentId: value.establishmentId,
+            establishmentId,
           });
 
     request.subscribe({
       next: () => {
         this.message.set(selected ? 'Usuario actualizado.' : 'Usuario creado.');
         this.error.set(false);
-        this.editing.set(false);
+        this.closeEditor();
         this.load(this.page()?.page ?? 0);
       },
       error: (err) => this.showError(err),
@@ -127,6 +143,28 @@ export class UsersPage {
     if (establishmentId) {
       this.clearControlErrors(this.form.controls.establishmentId, ['required']);
     }
+  }
+
+  selectAccountType(role: UserRole): void {
+    if (role === 'ADMIN' && !this.canCreateAdmin()) {
+      this.form.controls.accountType.setValue('ESTABLISHMENT_OPERATOR');
+      this.form.controls.establishmentId.setValue('');
+      this.message.set('Solo el superadministrador puede crear cuentas administradoras.');
+      this.error.set(true);
+      return;
+    }
+
+    this.form.controls.accountType.setValue(role);
+    if (role === 'ADMIN') {
+      this.form.controls.establishmentId.setValue('');
+      this.clearControlErrors(this.form.controls.establishmentId, ['required', 'invalid']);
+    }
+  }
+
+  closeEditor(): void {
+    this.form.reset({ email: '', displayName: '', password: '', confirm: '', accountType: this.canCreateAdmin() ? 'ADMIN' : 'ESTABLISHMENT_OPERATOR', establishmentId: '', active: true });
+    this.editing.set(false);
+    this.selected.set(null);
   }
 
   savePassword(user: AdminUser): void {
@@ -177,6 +215,27 @@ export class UsersPage {
   }
 
   showError(err: unknown): void {
+    if (err instanceof HttpErrorResponse && err.status === 403) {
+      this.message.set('Solo el superadministrador puede crear cuentas administradoras.');
+      this.requestId.set(requestIdFrom(err));
+      this.error.set(true);
+      return;
+    }
+
+    if (err instanceof HttpErrorResponse && err.status === 400) {
+      this.message.set('Revisa los datos ingresados. El establecimiento y la contraseña deben cumplir las reglas del sistema.');
+      this.requestId.set(requestIdFrom(err));
+      this.error.set(true);
+      return;
+    }
+
+    if (err instanceof HttpErrorResponse && err.status === 409) {
+      this.message.set(detailFrom(err) || 'Ya existe una cuenta con ese correo electrónico.');
+      this.requestId.set(requestIdFrom(err));
+      this.error.set(true);
+      return;
+    }
+
     const mapped = mapApiError(err);
     this.message.set(mapped.message);
     this.requestId.set(mapped.requestId);
@@ -188,7 +247,8 @@ export class UsersPage {
     const selected = this.selected();
     this.clearControlErrors(this.form.controls.password, ['required']);
     this.clearControlErrors(this.form.controls.confirm, ['required', 'passwordMismatch']);
-    this.clearControlErrors(this.form.controls.establishmentId, ['required']);
+    this.clearControlErrors(this.form.controls.accountType, ['forbiddenAdmin']);
+    this.clearControlErrors(this.form.controls.establishmentId, ['required', 'invalid']);
 
     if (!selected && !value.password) {
       this.addControlError(this.form.controls.password, 'required');
@@ -202,8 +262,21 @@ export class UsersPage {
       this.addControlError(this.form.controls.confirm, 'passwordMismatch');
     }
 
+    if (!selected && value.accountType === 'ADMIN') {
+      this.form.controls.establishmentId.setValue('');
+      if (!this.canCreateAdmin()) {
+        this.addControlError(this.form.controls.accountType, 'forbiddenAdmin');
+      } else {
+        this.clearControlErrors(this.form.controls.accountType, ['forbiddenAdmin']);
+      }
+    }
+
     if (!selected && value.accountType === 'ESTABLISHMENT_OPERATOR' && !value.establishmentId) {
       this.addControlError(this.form.controls.establishmentId, 'required');
+    }
+
+    if (!selected && value.accountType === 'ESTABLISHMENT_OPERATOR' && value.establishmentId && !Number.isFinite(Number(value.establishmentId))) {
+      this.addControlError(this.form.controls.establishmentId, 'invalid');
     }
   }
 
@@ -216,4 +289,22 @@ export class UsersPage {
     keys.forEach((key) => delete errors[key]);
     control.setErrors(Object.keys(errors).length ? errors : null);
   }
+}
+
+function detailFrom(error: HttpErrorResponse): string {
+  const body = error.error;
+  if (body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string') {
+    return body.detail;
+  }
+
+  return '';
+}
+
+function requestIdFrom(error: HttpErrorResponse): string | undefined {
+  const body = error.error;
+  if (body && typeof body === 'object' && 'requestId' in body && typeof body.requestId === 'string') {
+    return body.requestId;
+  }
+
+  return error.headers.get('X-Request-ID') ?? undefined;
 }

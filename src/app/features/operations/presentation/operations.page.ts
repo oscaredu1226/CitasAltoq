@@ -32,6 +32,7 @@ export class OperationsPage {
   readonly redFilter = signal('');
   readonly microredFilter = signal('');
   readonly confirmAllOpen = signal(false);
+  readonly saveConfirmationOpen = signal(false);
   readonly audiencePermissionChecked = signal(false);
   readonly audienceAllowed = signal(false);
   readonly audienceForbidden = signal(false);
@@ -68,6 +69,13 @@ export class OperationsPage {
       || this.redFilter()
       || this.microredFilter(),
   ));
+  readonly selectedEstablishments = computed(() => {
+    const selected = this.selectedIds();
+    return this.activeEstablishments()
+      .filter((establishment) => selected.has(establishment.id))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
+  });
+  readonly selectedWithoutDetails = computed(() => Math.max(0, this.selectedIds().size - this.selectedEstablishments().length));
   readonly canSave = computed(() => !this.saving()
     && (this.mode() === 'ALL' || this.selectedIds().size > 0));
   readonly saveBlockedMessage = computed(() => {
@@ -103,6 +111,7 @@ export class OperationsPage {
     }
 
     this.mode.set(mode);
+    this.saveConfirmationOpen.set(false);
     this.error.set('');
     this.message.set('');
   }
@@ -131,6 +140,7 @@ export class OperationsPage {
   confirmAll(): void {
     this.mode.set('ALL');
     this.confirmAllOpen.set(false);
+    this.saveConfirmationOpen.set(false);
     this.error.set('');
     this.message.set('');
   }
@@ -143,6 +153,7 @@ export class OperationsPage {
       next.delete(id);
     }
     this.selectedIds.set(next);
+    this.saveConfirmationOpen.set(false);
     this.error.set('');
     this.message.set('');
   }
@@ -153,12 +164,25 @@ export class OperationsPage {
       return;
     }
 
+    this.error.set('');
+    this.message.set('');
+    this.saveConfirmationOpen.set(true);
+  }
+
+  confirmSave(): void {
+    if (!this.canSave()) {
+      this.saveConfirmationOpen.set(false);
+      this.error.set(this.saveBlockedMessage() || 'Revisa la configuración antes de guardar.');
+      return;
+    }
+
     const request = {
       mode: this.mode(),
       establishmentIds: this.mode() === 'ALL'
         ? []
         : Array.from(this.selectedIds(), (id) => Number(id)),
     };
+    this.saveConfirmationOpen.set(false);
     this.saving.set(true);
     this.error.set('');
     this.message.set('');

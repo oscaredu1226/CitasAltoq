@@ -122,6 +122,49 @@
           </section>
         </div>
       }
+
+      @if (saveConfirmationOpen()) {
+        <div class="modal-backdrop" role="presentation">
+          <section class="modal audience-confirmation" role="dialog" aria-modal="true" aria-label="Confirmar alcance de recordatorios">
+            <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Revisión final</span>
+            <h2>Confirmar establecimientos habilitados</h2>
+            @if (mode() === 'ALL') {
+              <p class="info-note">
+                Estás por habilitar recordatorios CRED para todos los establecimientos activos e importados en el sistema.
+              </p>
+              <div class="confirmation-total">
+                <strong>{{ activeEstablishments().length }}</strong>
+                <span>establecimientos activos dentro del catálogo actual.</span>
+              </div>
+            } @else {
+              <p class="info-note">
+                Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
+              </p>
+              <div class="confirmation-total">
+                <strong>{{ selectedIds().size }}</strong>
+                <span>{{ selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados' }}.</span>
+              </div>
+              <div class="confirmation-list" aria-label="Establecimientos seleccionados">
+                @for (establishment of selectedEstablishments(); track establishment.id) {
+                  <article>
+                    <strong>{{ establishment.name }}</strong>
+                    <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
+                  </article>
+                }
+                @if (selectedWithoutDetails()) {
+                  <p class="muted">{{ selectedWithoutDetails() }} establecimiento(s) seleccionado(s) no están visibles en el catálogo cargado.</p>
+                }
+              </div>
+            }
+            <div class="modal__actions">
+              <button class="button" type="button" (click)="saveConfirmationOpen.set(false)">Volver a revisar</button>
+              <button class="button button--primary" type="button" [disabled]="saving()" (click)="confirmSave()">
+                {{ saving() ? 'Guardando...' : 'Confirmar y guardar' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
     } @else if (adminUser() && audienceForbidden()) {
       <section class="panel audience-restricted">
         <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Administrador maestro requerido</span>

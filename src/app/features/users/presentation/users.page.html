@@ -55,8 +55,10 @@
             <label>Confirmar contraseña<input type="password" formControlName="confirm" /><app-field-error [control]="form.controls.confirm" /></label>
           }
           <label>Tipo de cuenta
-            <select formControlName="accountType">
-              <option value="ADMIN">Administrador</option>
+            <select formControlName="accountType" (change)="selectAccountType($any($event.target).value)">
+              @if (canCreateAdmin() || selected()?.roles?.includes('ADMIN')) {
+                <option value="ADMIN" [disabled]="!canCreateAdmin() && !selected()">Administrador</option>
+              }
               <option value="ESTABLISHMENT_OPERATOR">Operador de establecimiento</option>
             </select>
           </label>
@@ -72,7 +74,7 @@
           }
           <label class="checkbox-row"><input type="checkbox" formControlName="active" /> Activo</label>
           <div class="modal__actions">
-            <button class="button" type="button" (click)="editing.set(false)">
+            <button class="button" type="button" (click)="closeEditor()">
               <svg lucideX size="16" aria-hidden="true"></svg>
               Cancelar
             </button>

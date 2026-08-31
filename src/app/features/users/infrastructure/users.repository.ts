@@ -23,7 +23,7 @@ export interface CreateAdminUserRequest {
 }
 
 export interface CreateOperatorUserRequest extends CreateAdminUserRequest {
-  establishmentId: string;
+  establishmentId: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,17 +38,11 @@ export class UsersRepository {
   }
 
   createAdmin(payload: CreateAdminUserRequest): Observable<AdminUser> {
-    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), {
-      ...payload,
-      role: 'ADMIN',
-    });
+    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users/admins'), payload);
   }
 
   createOperator(payload: CreateOperatorUserRequest): Observable<AdminUser> {
-    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), {
-      ...payload,
-      role: 'ESTABLISHMENT_OPERATOR',
-    });
+    return this.http.post<AdminUser>(apiUrl(this.config, '/api/admin/users'), payload);
   }
 
   update(id: string, payload: Pick<AdminUser, 'email' | 'displayName' | 'active'>): Observable<AdminUser> {

@@ -22,7 +22,7 @@ describe('UsersRepository', () => {
     const repo = TestBed.inject(UsersRepository);
     const controller = TestBed.inject(HttpTestingController);
 
-    repo.createOperator({ displayName: 'Operador', email: 'op@example.test', password: 'password123', establishmentId: 'est-1' }).subscribe();
+    repo.createOperator({ displayName: 'Operador', email: 'op@example.test', password: 'password123', establishmentId: 123 }).subscribe();
 
     const request = controller.expectOne('https://api.example.test/api/admin/users');
     expect(request.request.method).toBe('POST');
@@ -30,8 +30,7 @@ describe('UsersRepository', () => {
       displayName: 'Operador',
       email: 'op@example.test',
       password: 'password123',
-      establishmentId: 'est-1',
-      role: 'ESTABLISHMENT_OPERATOR',
+      establishmentId: 123,
     });
   });
 
@@ -41,13 +40,12 @@ describe('UsersRepository', () => {
 
     repo.createAdmin({ displayName: 'Admin', email: 'admin@example.test', password: 'password123' }).subscribe();
 
-    const request = controller.expectOne('https://api.example.test/api/admin/users');
+    const request = controller.expectOne('https://api.example.test/api/admin/users/admins');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       displayName: 'Admin',
       email: 'admin@example.test',
       password: 'password123',
-      role: 'ADMIN',
     });
   });
 });
