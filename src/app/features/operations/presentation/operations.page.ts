@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { LucideSave, LucideShieldCheck } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
@@ -27,24 +28,40 @@ export class OperationsPage {
   readonly audience = signal<ReminderAudience | null>(null);
   readonly mode = signal<ReminderAudienceMode>('SELECTED');
   readonly selectedIds = signal<Set<string>>(new Set());
+  readonly confirmAllOpen = signal(false);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
   readonly masterAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
+  readonly activeEstablishments = computed(() => this.organizations.establishments().filter((establishment) => establishment.active !== false));
   readonly canSave = computed(() => !this.saving()
     && (this.mode() === 'ALL' || this.selectedIds().size > 0));
 
   constructor() {
     this.repo.status().subscribe((status) => this.status.set(status));
-    if (this.masterAdmin()) {
-      this.organizations.load();
-      this.loadAudience();
-    }
+    effect(() => {
+      if (this.masterAdmin() && !this.audience() && !this.loading()) {
+        this.organizations.load();
+        this.loadAudience();
+      }
+    });
   }
 
   selectMode(mode: ReminderAudienceMode): void {
+    if (mode === 'ALL' && this.mode() !== 'ALL') {
+      this.confirmAllOpen.set(true);
+      return;
+    }
+
     this.mode.set(mode);
+    this.error.set('');
+    this.message.set('');
+  }
+
+  confirmAll(): void {
+    this.mode.set('ALL');
+    this.confirmAllOpen.set(false);
     this.error.set('');
     this.message.set('');
   }
@@ -81,7 +98,7 @@ export class OperationsPage {
         this.applyAudience(audience);
         this.message.set('Alcance de recordatorios actualizado correctamente.');
       },
-      error: (error) => this.error.set(mapApiError(error).message),
+      error: (error) => this.error.set(this.audienceErrorMessage(error)),
     });
   }
 
@@ -100,13 +117,25 @@ export class OperationsPage {
     this.loading.set(true);
     this.repo.reminderAudience().pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (audience) => this.applyAudience(audience),
-      error: (error) => this.error.set(mapApiError(error).message),
+      error: (error) => this.error.set(this.audienceErrorMessage(error)),
     });
   }
 
   private applyAudience(audience: ReminderAudience): void {
     this.audience.set(audience);
     this.mode.set(audience.mode);
-    this.selectedIds.set(new Set(audience.selectedEstablishments.map((item) => String(item.id))));
+    this.selectedIds.set(new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id))));
+  }
+
+  private audienceErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && error.status === 400) {
+      return 'La configuración enviada no es válida. En modo seleccionado debes elegir al menos un establecimiento activo, y en modo todos no se envían IDs.';
+    }
+
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      return 'Solo el administrador maestro puede modificar el alcance de recordatorios CRED.';
+    }
+
+    return mapApiError(error).message;
   }
 }
