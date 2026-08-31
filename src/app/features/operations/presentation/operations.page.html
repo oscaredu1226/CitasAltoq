@@ -165,11 +165,25 @@
           </section>
         </div>
       }
-    } @else if (adminUser() && audienceForbidden()) {
+    } @else if (masterAdmin()) {
+      <section class="panel audience-restricted">
+        <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> MFA requerido</span>
+        <h2>Desbloquea el alcance de recordatorios</h2>
+        <p>Verifica el segundo factor para consultar o modificar qué establecimientos reciben recordatorios CRED.</p>
+        <button class="button button--primary" type="button" (click)="unlockMfa()">Desbloquear configuración</button>
+      </section>
+    } @else if (adminUser()) {
       <section class="panel audience-restricted">
         <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Administrador maestro requerido</span>
         <h2>Alcance de recordatorios no disponible</h2>
-        <p>El backend respondió 403 para esta sesión. Solo un usuario con <strong>masterAdmin: true</strong> puede modificar qué establecimientos reciben recordatorios CRED.</p>
+        <p>Solo un usuario con <strong>masterAdmin: true</strong> puede consultar o modificar qué establecimientos reciben recordatorios CRED.</p>
       </section>
     }
+
+    <app-mfa-challenge
+      [open]="mfaOpen()"
+      reason="Desbloquea temporalmente la configuración de establecimientos para recordatorios CRED."
+      (closed)="mfaOpen.set(false)"
+      (verified)="handleMfaVerified()"
+    />
   

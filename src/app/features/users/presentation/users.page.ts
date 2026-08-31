@@ -6,6 +6,8 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { isMasterAdmin, roleLabel, UserRole } from '../../../core/auth/auth.models';
+import { MfaChallengeComponent } from '../../../core/mfa/mfa-challenge.component';
+import { MfaStore } from '../../../core/mfa/mfa.store';
 import { AlertComponent, EmptyStateComponent, FieldErrorComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { EstablishmentSelectComponent } from '../../organization/presentation/establishment-select/establishment-select.component';
 import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
@@ -22,6 +24,7 @@ import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
     LucidePlus,
     LucideSave,
     LucideX,
+    MfaChallengeComponent,
     PageTitleComponent,
     PaginationComponent,
     ReactiveFormsModule,
@@ -33,11 +36,13 @@ import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
 export class UsersPage {
   private readonly repo = inject(UsersRepository);
   private readonly auth = inject(AuthFacade);
+  private readonly mfa = inject(MfaStore);
   private readonly fb = inject(FormBuilder);
   readonly page = signal<PageResponse<AdminUser> | null>(null);
   readonly selected = signal<AdminUser | null>(null);
   readonly passwordUser = signal<AdminUser | null>(null);
   readonly editing = signal(false);
+  readonly mfaOpen = signal(false);
   readonly message = signal('');
   readonly error = signal(false);
   readonly requestId = signal<string | undefined>(undefined);
@@ -50,7 +55,9 @@ export class UsersPage {
     establishmentId: [''],
     active: [true],
   });
-  readonly canCreateAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
+  readonly masterAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
+  readonly canMutateUsers = computed(() => this.masterAdmin() && this.mfa.elevated());
+  readonly canCreateAdmin = this.canMutateUsers;
   readonly passwordForm = this.fb.nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirm: ['', [Validators.required, Validators.minLength(8)]],
@@ -65,6 +72,10 @@ export class UsersPage {
   }
 
   newUser(): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     this.selected.set(null);
     this.form.reset({
       email: '',
@@ -80,6 +91,10 @@ export class UsersPage {
   }
 
   edit(user: AdminUser): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     this.selected.set(user);
     this.form.reset({
       email: user.email,
@@ -95,6 +110,10 @@ export class UsersPage {
   }
 
   save(): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     this.applyUserValidation();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -133,6 +152,10 @@ export class UsersPage {
   }
 
   resetPassword(user: AdminUser): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     this.passwordForm.reset({ password: '', confirm: '' });
     this.passwordUser.set(user);
   }
@@ -168,6 +191,10 @@ export class UsersPage {
   }
 
   savePassword(user: AdminUser): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     const value = this.passwordForm.getRawValue();
     this.clearControlErrors(this.passwordForm.controls.confirm, ['passwordMismatch']);
     if (value.password && value.confirm && value.password !== value.confirm) {
@@ -242,6 +269,16 @@ export class UsersPage {
     this.error.set(true);
   }
 
+  unlockMfa(): void {
+    if (!this.masterAdmin()) {
+      this.message.set('Solo el superadministrador puede modificar cuentas de usuario.');
+      this.error.set(true);
+      return;
+    }
+
+    this.mfaOpen.set(true);
+  }
+
   private applyUserValidation(): void {
     const value = this.form.getRawValue();
     const selected = this.selected();
@@ -288,6 +325,23 @@ export class UsersPage {
     const errors = { ...(control.errors ?? {}) };
     keys.forEach((key) => delete errors[key]);
     control.setErrors(Object.keys(errors).length ? errors : null);
+  }
+
+  private ensureMfa(): boolean {
+    if (!this.masterAdmin()) {
+      this.message.set(this.form.controls.accountType.value === 'ADMIN'
+        ? 'Solo el superadministrador puede crear cuentas administradoras.'
+        : 'Solo el superadministrador puede modificar cuentas de usuario.');
+      this.error.set(true);
+      return false;
+    }
+
+    if (!this.mfa.hasFreshElevation()) {
+      this.unlockMfa();
+      return false;
+    }
+
+    return true;
   }
 }
 

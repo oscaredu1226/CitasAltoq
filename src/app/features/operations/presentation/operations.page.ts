@@ -5,6 +5,8 @@ import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin, isMasterAdmin } from '../../../core/auth/auth.models';
 import { mapApiError } from '../../../core/http/error-message.mapper';
+import { MfaChallengeComponent } from '../../../core/mfa/mfa-challenge.component';
+import { MfaStore } from '../../../core/mfa/mfa.store';
 import { AlertComponent, PageTitleComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { OrganizationStore } from '../../organization/application/organization.store';
 import {
@@ -16,13 +18,14 @@ import {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, PageTitleComponent, StatusBadgeComponent, LucideSave, LucideShieldCheck],
+  imports: [AlertComponent, MfaChallengeComponent, PageTitleComponent, StatusBadgeComponent, LucideSave, LucideShieldCheck],
   templateUrl: './operations.page.html',
   styleUrl: './operations.page.css',
 })
 export class OperationsPage {
   private readonly repo = inject(OperationsRepository);
   private readonly auth = inject(AuthFacade);
+  private readonly mfa = inject(MfaStore);
   readonly organizations = inject(OrganizationStore);
   readonly status = signal<OperationsStatus | null>(null);
   readonly audience = signal<ReminderAudience | null>(null);
@@ -33,6 +36,7 @@ export class OperationsPage {
   readonly microredFilter = signal('');
   readonly confirmAllOpen = signal(false);
   readonly saveConfirmationOpen = signal(false);
+  readonly mfaOpen = signal(false);
   readonly audiencePermissionChecked = signal(false);
   readonly audienceAllowed = signal(false);
   readonly audienceForbidden = signal(false);
@@ -42,7 +46,7 @@ export class OperationsPage {
   readonly message = signal('');
   readonly adminUser = computed(() => isAdmin(this.auth.session.user()));
   readonly masterAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
-  readonly canManageAudience = computed(() => this.masterAdmin() || this.audienceAllowed());
+  readonly canManageAudience = computed(() => this.masterAdmin() && this.mfa.elevated());
   readonly activeEstablishments = computed(() => this.organizations.establishments().filter((establishment) => establishment.active !== false));
   readonly redOptions = computed(() => uniqueOptions(this.activeEstablishments().map((establishment) => establishment.red)));
   readonly microredOptions = computed(() => {
@@ -97,7 +101,7 @@ export class OperationsPage {
   constructor() {
     this.repo.status().subscribe((status) => this.status.set(status));
     effect(() => {
-      if (this.adminUser() && !this.audiencePermissionChecked() && !this.loading()) {
+      if (this.masterAdmin() && this.mfa.elevated() && !this.audiencePermissionChecked() && !this.loading()) {
         this.audiencePermissionChecked.set(true);
         this.loadAudience();
       }
@@ -159,6 +163,10 @@ export class OperationsPage {
   }
 
   save(): void {
+    if (!this.ensureMfa()) {
+      return;
+    }
+
     if (!this.canSave()) {
       this.error.set(this.saveBlockedMessage() || 'Revisa la configuración antes de guardar.');
       return;
@@ -170,6 +178,11 @@ export class OperationsPage {
   }
 
   confirmSave(): void {
+    if (!this.ensureMfa()) {
+      this.saveConfirmationOpen.set(false);
+      return;
+    }
+
     if (!this.canSave()) {
       this.saveConfirmationOpen.set(false);
       this.error.set(this.saveBlockedMessage() || 'Revisa la configuración antes de guardar.');
@@ -204,6 +217,20 @@ export class OperationsPage {
     return value
       ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
       : 'Sin cambios registrados';
+  }
+
+  unlockMfa(): void {
+    if (!this.masterAdmin()) {
+      this.error.set('Solo el administrador maestro puede modificar el alcance de recordatorios CRED.');
+      return;
+    }
+
+    this.mfaOpen.set(true);
+  }
+
+  handleMfaVerified(): void {
+    this.mfaOpen.set(false);
+    this.audiencePermissionChecked.set(false);
   }
 
   private loadAudience(): void {
@@ -247,6 +274,20 @@ export class OperationsPage {
     }
 
     return mapApiError(error).message;
+  }
+
+  private ensureMfa(): boolean {
+    if (!this.masterAdmin()) {
+      this.error.set('Solo el administrador maestro puede modificar el alcance de recordatorios CRED.');
+      return false;
+    }
+
+    if (!this.mfa.hasFreshElevation()) {
+      this.unlockMfa();
+      return false;
+    }
+
+    return true;
   }
 }
 

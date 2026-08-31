@@ -1,0 +1,122 @@
+@if (open()) {
+  <div class="modal-backdrop" role="presentation">
+    <section class="modal mfa-modal" role="dialog" aria-modal="true" aria-label="Verificación del superadministrador">
+      <div class="mfa-modal__header">
+        <span class="mfa-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Seguridad administrativa</span>
+        <button class="icon-button" type="button" (click)="close()" aria-label="Cerrar verificación">
+          <svg lucideX size="18" aria-hidden="true"></svg>
+        </button>
+      </div>
+      <h2>Verificación del superadministrador</h2>
+      <p class="mfa-reason">{{ reason() }}</p>
+
+      @if (error()) {
+        <p class="mfa-error">{{ error() }}</p>
+      }
+
+      @if (step() === 'loading') {
+        <div class="mfa-loading">
+          <span class="spinner"></span>
+          Revisando estado MFA...
+        </div>
+      } @else if (step() === 'setup') {
+        <form [formGroup]="setupForm" (ngSubmit)="startSetup()" class="mfa-form">
+          <p class="info-note">Vincula Google Authenticator para desbloquear operaciones sensibles durante unos minutos.</p>
+          @if (status()?.setupPending) {
+            <p class="mfa-muted">Hay una vinculación pendiente. Si el QR anterior venció o no lo tienes, reinicia el proceso con tu contraseña actual.</p>
+            <button class="button" type="button" (click)="continuePendingSetup()">Ya escaneé el QR pendiente</button>
+          }
+          <label>Contraseña actual
+            <input type="password" formControlName="password" autocomplete="current-password" />
+            <app-field-error [control]="setupForm.controls.password" />
+          </label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="close()">Cancelar</button>
+            <button class="button button--primary" type="submit" [disabled]="loading()">
+              <svg lucideKeyRound size="16" aria-hidden="true"></svg>
+              {{ loading() ? 'Preparando...' : 'Generar QR' }}
+            </button>
+          </div>
+        </form>
+      } @else if (step() === 'confirm') {
+        <form [formGroup]="verifyForm" (ngSubmit)="confirmSetup()" class="mfa-form">
+          @if (setupData()) {
+            <div class="qr-panel">
+              @if (qrDataUrl()) {
+                <img [src]="qrDataUrl()" alt="QR para Google Authenticator" />
+              } @else {
+                <div class="qr-placeholder"><span class="spinner"></span></div>
+              }
+              <div>
+                <strong>Escanea el QR con Google Authenticator</strong>
+                <span>También puedes ingresar esta clave manualmente:</span>
+                <code>{{ setupData()?.secret }}</code>
+                <small>Vence: {{ expiresAtLabel() }}</small>
+              </div>
+            </div>
+          } @else {
+            <p class="info-note">Ingresa el código del QR pendiente. Si ya no tienes ese QR, vuelve y reinicia la vinculación.</p>
+          }
+          <label>Código de 6 dígitos
+            <input inputmode="numeric" maxlength="6" formControlName="code" autocomplete="one-time-code" />
+            <app-field-error [control]="verifyForm.controls.code" />
+          </label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="step.set('setup')">
+              <svg lucideRefreshCw size="16" aria-hidden="true"></svg>
+              Reiniciar
+            </button>
+            <button class="button button--primary" type="submit" [disabled]="loading()">
+              {{ loading() ? 'Confirmando...' : 'Confirmar código' }}
+            </button>
+          </div>
+        </form>
+      } @else if (step() === 'verify') {
+        <form [formGroup]="verifyForm" (ngSubmit)="verify()" class="mfa-form">
+          <label>Código de Google Authenticator
+            <input inputmode="numeric" maxlength="6" formControlName="code" autocomplete="one-time-code" />
+            <app-field-error [control]="verifyForm.controls.code" />
+          </label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="showRecovery()">Usar código backup</button>
+            <button class="button button--primary" type="submit" [disabled]="loading()">
+              {{ loading() ? 'Verificando...' : 'Verificar' }}
+            </button>
+          </div>
+        </form>
+      } @else if (step() === 'recovery') {
+        <form [formGroup]="recoveryForm" (ngSubmit)="recover()" class="mfa-form">
+          <p class="info-note">La recuperación inicia una nueva vinculación. Después tendrás que escanear un QR nuevo.</p>
+          <label>Contraseña actual
+            <input type="password" formControlName="password" autocomplete="current-password" />
+            <app-field-error [control]="recoveryForm.controls.password" />
+          </label>
+          <label>Código backup
+            <input formControlName="recoveryCode" autocomplete="off" />
+            <app-field-error [control]="recoveryForm.controls.recoveryCode" />
+          </label>
+          <div class="modal__actions">
+            <button class="button" type="button" (click)="step.set('verify')">Volver</button>
+            <button class="button button--primary" type="submit" [disabled]="loading()">Iniciar recuperación</button>
+          </div>
+        </form>
+      } @else if (step() === 'recovery-codes') {
+        <div class="mfa-form">
+          <p class="info-note">Guarda estos códigos backup ahora. No se volverán a mostrar.</p>
+          <div class="recovery-codes" aria-label="Códigos backup">
+            @for (code of recoveryCodes(); track code) {
+              <code>{{ code }}</code>
+            }
+          </div>
+          <div class="modal__actions">
+            <button class="button button--primary" type="button" (click)="finishVerified()">Ya los guardé</button>
+          </div>
+        </div>
+      } @else {
+        <div class="modal__actions">
+          <button class="button button--primary" type="button" (click)="close()">Entendido</button>
+        </div>
+      }
+    </section>
+  </div>
+}

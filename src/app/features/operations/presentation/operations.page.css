@@ -192,6 +192,10 @@
   color: var(--color-muted);
 }
 
+.audience-restricted .button {
+  margin-top: 16px;
+}
+
 .audience-confirmation {
   width: min(100%, 620px);
 }

@@ -19,6 +19,30 @@ function normalizeProblem(value: unknown): ApiProblem {
 }
 
 function mapProblemMessage(status: number, problem: ApiProblem): string {
+  if (problem.code === 'MFA_SETUP_REQUIRED') {
+    return 'Vincula Google Authenticator antes de continuar.';
+  }
+
+  if (problem.code === 'MFA_REQUIRED') {
+    return 'Verifica el segundo factor antes de continuar.';
+  }
+
+  if (problem.code === 'MFA_INVALID_CODE') {
+    return 'Credenciales o código incorrecto. Intenta con un código vigente.';
+  }
+
+  if (problem.code === 'MFA_SETUP_EXPIRED') {
+    return 'La vinculación MFA venció. Reinicia el proceso.';
+  }
+
+  if (problem.code === 'MFA_RATE_LIMITED') {
+    return 'Demasiados intentos. Espera antes de volver a probar.';
+  }
+
+  if (problem.code === 'MFA_UNAVAILABLE') {
+    return 'MFA no está disponible por configuración del servidor.';
+  }
+
   if (problem.code === 'IMPORT_FILE_CHANGED') {
     return 'El archivo cambió después de la vista previa. Vuelve a analizarlo.';
   }

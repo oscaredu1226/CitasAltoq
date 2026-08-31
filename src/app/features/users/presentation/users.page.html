@@ -1,8 +1,15 @@
     <app-page-title title="Usuarios" subtitle="Gestión administrativa de cuentas y establecimientos.">
-      <button class="button button--primary" type="button" (click)="newUser()">
-        <svg lucidePlus size="18" aria-hidden="true"></svg>
-        Crear usuario
-      </button>
+      @if (canMutateUsers()) {
+        <button class="button button--primary" type="button" (click)="newUser()">
+          <svg lucidePlus size="18" aria-hidden="true"></svg>
+          Crear usuario
+        </button>
+      } @else if (masterAdmin()) {
+        <button class="button button--primary" type="button" (click)="unlockMfa()">
+          <svg lucideKeyRound size="18" aria-hidden="true"></svg>
+          Desbloquear administración
+        </button>
+      }
     </app-page-title>
     <app-alert title="Usuarios" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'green'" />
     <article class="panel">
@@ -11,7 +18,7 @@
         @if (p.content.length) {
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Establecimiento</th><th>Microred</th><th>Red</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Establecimiento</th><th>Microred</th><th>Red</th><th>Estado</th>@if (canMutateUsers()) {<th>Acciones</th>}</tr></thead>
               <tbody>
                 @for (user of p.content; track user.id) {
                   <tr>
@@ -22,16 +29,18 @@
                     <td>{{ organizationColumn(user, 'microred') }}</td>
                     <td>{{ organizationColumn(user, 'red') }}</td>
                     <td><app-status-badge [value]="user.active" /></td>
-                    <td class="actions">
-                      <button class="button button--small" type="button" (click)="edit(user)">
-                        <svg lucidePencil size="15" aria-hidden="true"></svg>
-                        Editar
-                      </button>
-                      <button class="button button--small" type="button" (click)="resetPassword(user)">
-                        <svg lucideKeyRound size="15" aria-hidden="true"></svg>
-                        Restablecer contraseña
-                      </button>
-                    </td>
+                    @if (canMutateUsers()) {
+                      <td class="actions">
+                        <button class="button button--small" type="button" (click)="edit(user)">
+                          <svg lucidePencil size="15" aria-hidden="true"></svg>
+                          Editar
+                        </button>
+                        <button class="button button--small" type="button" (click)="resetPassword(user)">
+                          <svg lucideKeyRound size="15" aria-hidden="true"></svg>
+                          Restablecer contraseña
+                        </button>
+                      </td>
+                    }
                   </tr>
                 }
               </tbody>
@@ -104,4 +113,11 @@
         </form>
       </div>
     }
+
+    <app-mfa-challenge
+      [open]="mfaOpen()"
+      reason="Desbloquea temporalmente la administración de usuarios."
+      (closed)="mfaOpen.set(false)"
+      (verified)="mfaOpen.set(false)"
+    />
   

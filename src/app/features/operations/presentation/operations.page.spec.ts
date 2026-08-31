@@ -5,6 +5,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { CurrentUser } from '../../../core/auth/auth.models';
+import { MfaStore } from '../../../core/mfa/mfa.store';
 import { OrganizationStore } from '../../organization/application/organization.store';
 import { OperationsRepository, ReminderAudience } from '../infrastructure/operations.repository';
 import { OperationsPage } from './operations.page';
@@ -79,6 +80,7 @@ describe('OperationsPage', () => {
     masterAdmin: boolean,
     audience: ReminderAudience = selectedAudience,
     reminderAudienceResult: Observable<ReminderAudience> = of(audience),
+    mfaElevated = true,
   ): void {
     repository = {
       status: vi.fn(() => of(status)),
@@ -91,6 +93,7 @@ describe('OperationsPage', () => {
       providers: [
         provideRouter([]),
         { provide: AuthFacade, useValue: { session: { user: signal(user(masterAdmin)) } } },
+        { provide: MfaStore, useValue: { elevated: signal(mfaElevated), hasFreshElevation: vi.fn(() => mfaElevated) } },
         {
           provide: OrganizationStore,
           useValue: {
@@ -108,19 +111,19 @@ describe('OperationsPage', () => {
     fixture.detectChanges();
   }
 
-  it('shows a restricted state when the backend denies a non-master admin', () => {
+  it('does not request reminder audience settings for non-master admins', () => {
     configure(false, selectedAudience, throwError(() => new HttpErrorResponse({ status: 403 })));
 
-    expect(repository.reminderAudience).toHaveBeenCalled();
+    expect(repository.reminderAudience).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('Establecimientos habilitados para recordatorios');
     expect(fixture.nativeElement.textContent).toContain('Administrador maestro requerido');
   });
 
-  it('shows reminder audience settings when the backend authorizes the current admin', () => {
-    configure(false);
+  it('requires MFA before loading reminder audience settings for master admins', () => {
+    configure(true, selectedAudience, of(selectedAudience), false);
 
-    expect(repository.reminderAudience).toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Establecimientos habilitados para recordatorios');
+    expect(repository.reminderAudience).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('MFA requerido');
   });
 
   it('shows only active establishments for master admins', () => {
