@@ -32,8 +32,13 @@
 
         @if (mode() === 'SELECTED') {
           <div class="selection-summary">
-            <strong>{{ selectedIds().size }}</strong>
-            <span>{{ selectedIds().size === 1 ? 'establecimiento habilitado' : 'establecimientos habilitados' }}</span>
+            <div>
+              <strong>{{ selectedIds().size }}</strong>
+              <span>{{ selectedIds().size === 1 ? 'establecimiento habilitado' : 'establecimientos habilitados' }}</span>
+            </div>
+            @if (hasAudienceChanges()) {
+              <span class="pending-pill">Cambios sin guardar</span>
+            }
           </div>
 
           @if (organizations.loading() || loading()) {
@@ -137,24 +142,32 @@
                 <span>establecimientos activos dentro del catálogo actual.</span>
               </div>
             } @else {
-              <p class="info-note">
-                Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
-              </p>
+              @if (selectedIds().size) {
+                <p class="info-note">
+                  Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
+                </p>
+              } @else {
+                <p class="info-note info-note--warning">
+                  No quedará ningún establecimiento autorizado. Los recordatorios CRED pendientes o nuevos no deberán enviarse hasta que vuelvas a habilitar un centro o actives todos.
+                </p>
+              }
               <div class="confirmation-total">
                 <strong>{{ selectedIds().size }}</strong>
                 <span>{{ selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados' }}.</span>
               </div>
-              <div class="confirmation-list" aria-label="Establecimientos seleccionados">
-                @for (establishment of selectedEstablishments(); track establishment.id) {
-                  <article>
-                    <strong>{{ establishment.name }}</strong>
-                    <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
-                  </article>
-                }
-                @if (selectedWithoutDetails()) {
-                  <p class="muted">{{ selectedWithoutDetails() }} establecimiento(s) seleccionado(s) no están visibles en el catálogo cargado.</p>
-                }
-              </div>
+              @if (selectedIds().size) {
+                <div class="confirmation-list" aria-label="Establecimientos seleccionados">
+                  @for (establishment of selectedEstablishments(); track establishment.id) {
+                    <article>
+                      <strong>{{ establishment.name }}</strong>
+                      <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
+                    </article>
+                  }
+                  @if (selectedWithoutDetails()) {
+                    <p class="muted">{{ selectedWithoutDetails() }} establecimiento(s) seleccionado(s) no están visibles en el catálogo cargado.</p>
+                  }
+                </div>
+              }
             }
             <div class="modal__actions">
               <button class="button" type="button" (click)="saveConfirmationOpen.set(false)">Volver a revisar</button>
@@ -174,9 +187,9 @@
       </section>
     } @else if (adminUser()) {
       <section class="panel audience-restricted">
-        <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Administrador maestro requerido</span>
-        <h2>Alcance de recordatorios no disponible</h2>
-        <p>Solo un usuario con <strong>masterAdmin: true</strong> puede consultar o modificar qué establecimientos reciben recordatorios CRED.</p>
+        <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Acceso restringido</span>
+        <h2>Configuración no disponible</h2>
+        <p>Tu cuenta no tiene permisos para consultar o modificar esta configuración.</p>
       </section>
     }
 

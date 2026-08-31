@@ -66,14 +66,30 @@
 .selection-summary {
   display: flex;
   align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
   padding: 0 22px 12px;
   color: var(--color-muted);
 }
 
+.selection-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .selection-summary strong {
   color: var(--color-text);
   font-size: 22px;
+}
+
+.pending-pill {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .audience-filters {
@@ -243,6 +259,11 @@
 
   .mode-switch {
     grid-template-columns: 1fr;
+  }
+
+  .selection-summary {
+    align-items: start;
+    flex-direction: column;
   }
 
   .audience-filters {

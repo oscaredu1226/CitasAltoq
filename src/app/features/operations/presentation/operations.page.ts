@@ -40,6 +40,8 @@ export class OperationsPage {
   readonly audiencePermissionChecked = signal(false);
   readonly audienceAllowed = signal(false);
   readonly audienceForbidden = signal(false);
+  readonly persistedMode = signal<ReminderAudienceMode>('SELECTED');
+  readonly persistedIds = signal<Set<string>>(new Set());
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
@@ -80,8 +82,10 @@ export class OperationsPage {
       .sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
   });
   readonly selectedWithoutDetails = computed(() => Math.max(0, this.selectedIds().size - this.selectedEstablishments().length));
+  readonly hasAudienceChanges = computed(() => this.mode() !== this.persistedMode()
+    || !sameSet(this.selectedIds(), this.persistedIds()));
   readonly canSave = computed(() => !this.saving()
-    && (this.mode() === 'ALL' || this.selectedIds().size > 0));
+    && this.hasAudienceChanges());
   readonly saveBlockedMessage = computed(() => {
     if (this.canSave()) {
       return '';
@@ -91,8 +95,8 @@ export class OperationsPage {
       return 'Estamos guardando la configuración. Espera un momento.';
     }
 
-    if (this.mode() === 'SELECTED' && this.selectedIds().size === 0) {
-      return 'Selecciona al menos un establecimiento activo para guardar este alcance.';
+    if (!this.hasAudienceChanges()) {
+      return 'No hay cambios pendientes por guardar.';
     }
 
     return '';
@@ -159,7 +163,7 @@ export class OperationsPage {
     this.selectedIds.set(next);
     this.saveConfirmationOpen.set(false);
     this.error.set('');
-    this.message.set('');
+    this.message.set('Cambio pendiente. Revisa y guarda el alcance para aplicarlo.');
   }
 
   save(): void {
@@ -221,7 +225,7 @@ export class OperationsPage {
 
   unlockMfa(): void {
     if (!this.masterAdmin()) {
-      this.error.set('Solo el administrador maestro puede modificar el alcance de recordatorios CRED.');
+      this.error.set(ACCESS_RESTRICTED_MESSAGE);
       return;
     }
 
@@ -261,7 +265,10 @@ export class OperationsPage {
   private applyAudience(audience: ReminderAudience): void {
     this.audience.set(audience);
     this.mode.set(audience.mode);
-    this.selectedIds.set(new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id))));
+    const selectedIds = new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id)));
+    this.selectedIds.set(selectedIds);
+    this.persistedMode.set(audience.mode);
+    this.persistedIds.set(new Set(selectedIds));
   }
 
   private audienceErrorMessage(error: unknown): string {
@@ -270,7 +277,7 @@ export class OperationsPage {
     }
 
     if (error instanceof HttpErrorResponse && error.status === 403) {
-      return 'Solo el administrador maestro puede modificar el alcance de recordatorios CRED.';
+      return ACCESS_RESTRICTED_MESSAGE;
     }
 
     return mapApiError(error).message;
@@ -278,7 +285,7 @@ export class OperationsPage {
 
   private ensureMfa(): boolean {
     if (!this.masterAdmin()) {
-      this.error.set('Solo el administrador maestro puede modificar el alcance de recordatorios CRED.');
+      this.error.set(ACCESS_RESTRICTED_MESSAGE);
       return false;
     }
 
@@ -290,6 +297,8 @@ export class OperationsPage {
     return true;
   }
 }
+
+const ACCESS_RESTRICTED_MESSAGE = 'Tu cuenta no tiene permisos para realizar esta acción.';
 
 function normalizeSearch(value: string): string {
   return value
@@ -303,4 +312,8 @@ function uniqueOptions(options: { id: string; name: string }[]): { id: string; n
   return Array.from(
     new Map(options.filter((option) => option.id && option.name).map((option) => [option.id, option])).values(),
   ).sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
+}
+
+function sameSet(left: Set<string>, right: Set<string>): boolean {
+  return left.size === right.size && Array.from(left).every((value) => right.has(value));
 }

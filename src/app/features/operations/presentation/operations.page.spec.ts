@@ -116,7 +116,10 @@ describe('OperationsPage', () => {
 
     expect(repository.reminderAudience).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('Establecimientos habilitados para recordatorios');
-    expect(fixture.nativeElement.textContent).toContain('Administrador maestro requerido');
+    expect(fixture.nativeElement.textContent).toContain('Acceso restringido');
+    expect(fixture.nativeElement.textContent).not.toContain('masterAdmin');
+    expect(fixture.nativeElement.textContent).not.toContain('superadministrador');
+    expect(fixture.nativeElement.textContent).not.toContain('administrador maestro');
   });
 
   it('requires MFA before loading reminder audience settings for master admins', () => {
@@ -159,10 +162,22 @@ describe('OperationsPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Puesto de Salud Alto Selva Alegre');
   });
 
-  it('disables saving selected mode without active establishments', () => {
-    configure(true, { mode: 'SELECTED', selectedEstablishments: [], updatedAt: '2026-08-30T23:00:00Z' });
+  it('saves an empty selected scope after deselecting the enabled establishments', () => {
+    configure(true);
 
-    expect(fixture.componentInstance.canSave()).toBe(false);
+    fixture.componentInstance.toggleEstablishment('1', false);
+
+    expect(fixture.componentInstance.selectedIds().size).toBe(0);
+    expect(fixture.componentInstance.canSave()).toBe(true);
+
+    fixture.componentInstance.save();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('No quedará ningún establecimiento autorizado');
+
+    fixture.componentInstance.confirmSave();
+
+    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [] });
   });
 
   it('requires visual confirmation before enabling all establishments', () => {
@@ -178,6 +193,7 @@ describe('OperationsPage', () => {
   it('requires final confirmation before saving selected establishments', () => {
     configure(true);
 
+    fixture.componentInstance.toggleEstablishment('2', true);
     fixture.componentInstance.save();
     fixture.detectChanges();
 
@@ -187,7 +203,7 @@ describe('OperationsPage', () => {
 
     fixture.componentInstance.confirmSave();
 
-    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [1] });
+    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [1, 2] });
   });
 
   it('saves ALL mode with an empty establishmentIds payload after double confirmation', () => {
@@ -208,6 +224,7 @@ describe('OperationsPage', () => {
     configure(true);
     repository.updateReminderAudience.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 400 })));
 
+    fixture.componentInstance.toggleEstablishment('2', true);
     fixture.componentInstance.save();
     fixture.componentInstance.confirmSave();
 
@@ -217,6 +234,6 @@ describe('OperationsPage', () => {
     fixture.componentInstance.save();
     fixture.componentInstance.confirmSave();
 
-    expect(fixture.componentInstance.error()).toContain('administrador maestro');
+    expect(fixture.componentInstance.error()).toContain('no tiene permisos');
   });
 });
