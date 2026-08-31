@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { LucideSave, LucideShieldCheck } from '@lucide/angular';
+import { LucideCircleCheck, LucideCircleX, LucideSave, LucideShieldCheck } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin, isMasterAdmin } from '../../../core/auth/auth.models';
@@ -18,7 +18,7 @@ import {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, MfaChallengeComponent, PageTitleComponent, StatusBadgeComponent, LucideSave, LucideShieldCheck],
+  imports: [AlertComponent, MfaChallengeComponent, PageTitleComponent, StatusBadgeComponent, LucideCircleCheck, LucideCircleX, LucideSave, LucideShieldCheck],
   templateUrl: './operations.page.html',
   styleUrl: './operations.page.css',
 })
@@ -84,6 +84,8 @@ export class OperationsPage {
   readonly selectedWithoutDetails = computed(() => Math.max(0, this.selectedIds().size - this.selectedEstablishments().length));
   readonly hasAudienceChanges = computed(() => this.mode() !== this.persistedMode()
     || !sameSet(this.selectedIds(), this.persistedIds()));
+  readonly canSelectFiltered = computed(() => this.filteredEstablishments().some((establishment) => !this.selectedIds().has(establishment.id)));
+  readonly canDeselectAll = computed(() => this.selectedIds().size > 0);
   readonly canSave = computed(() => !this.saving()
     && this.hasAudienceChanges());
   readonly saveBlockedMessage = computed(() => {
@@ -164,6 +166,18 @@ export class OperationsPage {
     this.saveConfirmationOpen.set(false);
     this.error.set('');
     this.message.set('Cambio pendiente. Revisa y guarda el alcance para aplicarlo.');
+  }
+
+  selectFilteredEstablishments(): void {
+    const next = new Set(this.selectedIds());
+    for (const establishment of this.filteredEstablishments()) {
+      next.add(establishment.id);
+    }
+    this.updateSelectedIds(next);
+  }
+
+  deselectAllEstablishments(): void {
+    this.updateSelectedIds(new Set());
   }
 
   save(): void {
@@ -269,6 +283,13 @@ export class OperationsPage {
     this.selectedIds.set(selectedIds);
     this.persistedMode.set(audience.mode);
     this.persistedIds.set(new Set(selectedIds));
+  }
+
+  private updateSelectedIds(selectedIds: Set<string>): void {
+    this.selectedIds.set(selectedIds);
+    this.saveConfirmationOpen.set(false);
+    this.error.set('');
+    this.message.set('Cambio pendiente. Revisa y guarda el alcance para aplicarlo.');
   }
 
   private audienceErrorMessage(error: unknown): string {

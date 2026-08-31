@@ -40,6 +40,16 @@
               <span class="pending-pill">Cambios sin guardar</span>
             }
           </div>
+          <div class="selection-tools" aria-label="Acciones masivas de establecimientos">
+            <button class="button" type="button" [disabled]="!canSelectFiltered()" (click)="selectFilteredEstablishments()">
+              <svg lucideCircleCheck size="16" aria-hidden="true"></svg>
+              Seleccionar visibles
+            </button>
+            <button class="button" type="button" [disabled]="!canDeselectAll()" (click)="deselectAllEstablishments()">
+              <svg lucideCircleX size="16" aria-hidden="true"></svg>
+              Deseleccionar todos
+            </button>
+          </div>
 
           @if (organizations.loading() || loading()) {
             <div class="audience-loading"><span class="spinner"></span> Cargando establecimientos...</div>

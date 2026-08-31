@@ -162,10 +162,20 @@ describe('OperationsPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Puesto de Salud Alto Selva Alegre');
   });
 
+  it('selects all filtered establishments without changing hidden selections', () => {
+    configure(true);
+
+    fixture.componentInstance.updateRedFilter('21');
+    fixture.componentInstance.selectFilteredEstablishments();
+
+    expect(Array.from(fixture.componentInstance.selectedIds()).sort()).toEqual(['1', '2']);
+    expect(fixture.componentInstance.canSave()).toBe(true);
+  });
+
   it('saves an empty selected scope after deselecting the enabled establishments', () => {
     configure(true);
 
-    fixture.componentInstance.toggleEstablishment('1', false);
+    fixture.componentInstance.deselectAllEstablishments();
 
     expect(fixture.componentInstance.selectedIds().size).toBe(0);
     expect(fixture.componentInstance.canSave()).toBe(true);

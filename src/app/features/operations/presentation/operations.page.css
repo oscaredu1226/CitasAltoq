@@ -83,6 +83,17 @@
   font-size: 22px;
 }
 
+.selection-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 22px 16px;
+}
+
+.selection-tools .button {
+  min-height: 38px;
+}
+
 .pending-pill {
   border-radius: 999px;
   padding: 5px 10px;
@@ -264,6 +275,10 @@
   .selection-summary {
     align-items: start;
     flex-direction: column;
+  }
+
+  .selection-tools .button {
+    width: 100%;
   }
 
   .audience-filters {
