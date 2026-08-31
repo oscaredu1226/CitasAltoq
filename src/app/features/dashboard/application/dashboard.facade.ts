@@ -1,25 +1,28 @@
 import { inject, Injectable } from '@angular/core';
-import { catchError, forkJoin, map, Observable, of } from 'rxjs';
-import { emptyPage } from '../../../core/http/page-response';
-import { todayDateOnly } from '../../../shared/utils/date-only';
+import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { addDaysDateOnly, todayDateOnly } from '../../../shared/utils/date-only';
 import { AppointmentsRepository, Appointment } from '../../appointments/infrastructure/appointments.repository';
-import { ImportsRepository, ImportBatch } from '../../imports/infrastructure/imports.repository';
-import { OperationsRepository, OperationsStatus } from '../../operations/infrastructure/operations.repository';
-import { PatientsRepository } from '../../patients/infrastructure/patients.repository';
-import { RemindersRepository } from '../../reminders/infrastructure/reminders.repository';
+import { Patient, PatientsRepository } from '../../patients/infrastructure/patients.repository';
+
+export interface DashboardAppointmentRow {
+  appointment: Appointment;
+  patient: Patient | null;
+}
 
 export interface DashboardData {
   totalPatients: number | null;
-  scheduledAppointments: number | null;
-  todayAppointments: number | null;
-  confirmedToday: number | null;
-  cannotAttendToday: number | null;
-  pendingToday: number | null;
-  totalReminders: number | null;
-  nextAppointments: Appointment[];
-  recentImports: ImportBatch[];
-  confirmationChart: { pending: number; confirmed: number; cannotAttend: number };
-  operations: OperationsStatus | null;
+  todayDate: string;
+  tomorrowDate: string;
+  todayScheduled: number | null;
+  todayConfirmed: number | null;
+  todayCannotAttend: number | null;
+  todayPending: number | null;
+  tomorrowScheduled: number | null;
+  tomorrowConfirmed: number | null;
+  tomorrowCannotAttend: number | null;
+  tomorrowPending: number | null;
+  todayAppointments: DashboardAppointmentRow[];
+  nextAppointments: DashboardAppointmentRow[];
 }
 
 export interface DashboardFilters {
@@ -32,12 +35,10 @@ export interface DashboardFilters {
 export class DashboardFacade {
   private readonly patients = inject(PatientsRepository);
   private readonly appointments = inject(AppointmentsRepository);
-  private readonly reminders = inject(RemindersRepository);
-  private readonly imports = inject(ImportsRepository);
-  private readonly operations = inject(OperationsRepository);
 
   load(filters: DashboardFilters = {}): Observable<DashboardData> {
     const today = todayDateOnly();
+    const tomorrow = addDaysDateOnly(today, 1);
     const appointmentFilters = {
       red: filters.red,
       microred: filters.microred,
@@ -51,46 +52,39 @@ export class DashboardFacade {
 
     return forkJoin({
       totalPatients: total(this.patients.list({ ...filters, page: 0, size: 1 })),
-      scheduledAppointments: total(this.appointments.list({ ...appointmentFilters, status: 'SCHEDULED', page: 0, size: 1 })),
-      todayAppointments: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, page: 0, size: 1 })),
-      confirmedToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
-      cannotAttendToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
-      pendingToday: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, confirmationStatus: 'PENDING', page: 0, size: 1 })),
-      totalReminders: total(this.reminders.list({ ...filters, page: 0, size: 1 })),
-      nextAppointments: this.appointments.list({ ...appointmentFilters, fromDate: today, status: 'SCHEDULED', page: 0, size: 5 }).pipe(
+      todayDate: of(today),
+      tomorrowDate: of(tomorrow),
+      todayScheduled: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', page: 0, size: 1 })),
+      todayConfirmed: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
+      todayCannotAttend: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
+      todayPending: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'PENDING', page: 0, size: 1 })),
+      tomorrowScheduled: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', page: 0, size: 1 })),
+      tomorrowConfirmed: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
+      tomorrowCannotAttend: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
+      tomorrowPending: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'PENDING', page: 0, size: 1 })),
+      todayAppointments: this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', page: 0, size: 6 }).pipe(
         map((page) => page.content),
+        switchMap((appointments) => this.appointmentRows(appointments)),
         catchError(() => of([])),
       ),
-      recentImports: this.imports.list(0, 50).pipe(
-        map((page) => page.content.filter((batch) => matchesImportScope(batch, filters)).slice(0, 5)),
-        catchError(() => of(emptyPage<ImportBatch>().content)),
+      nextAppointments: this.appointments.list({ ...appointmentFilters, fromDate: tomorrow, status: 'SCHEDULED', page: 0, size: 6 }).pipe(
+        map((page) => page.content),
+        switchMap((appointments) => this.appointmentRows(appointments)),
+        catchError(() => of([])),
       ),
-      operations: this.operations.status().pipe(catchError(() => of(null))),
-    }).pipe(
-      map((data) => ({
-        ...data,
-        confirmationChart: {
-          pending: data.pendingToday ?? 0,
-          confirmed: data.confirmedToday ?? 0,
-          cannotAttend: data.cannotAttendToday ?? 0,
-        },
-      })),
-    );
-  }
-}
-
-function matchesImportScope(batch: ImportBatch, filters: DashboardFilters): boolean {
-  if (filters.establishment && batch.scope.establishment !== filters.establishment) {
-    return false;
+    });
   }
 
-  if (filters.microred && batch.scope.microred !== filters.microred) {
-    return false;
-  }
+  private appointmentRows(appointments: Appointment[]): Observable<DashboardAppointmentRow[]> {
+    if (!appointments.length) {
+      return of([]);
+    }
 
-  if (filters.red && batch.scope.red !== filters.red) {
-    return false;
+    return forkJoin(appointments.map((appointment) =>
+      this.patients.lookup(appointment.patientId).pipe(
+        map((patient) => ({ appointment, patient })),
+        catchError(() => of({ appointment, patient: null })),
+      ),
+    ));
   }
-
-  return true;
 }

@@ -1,104 +1,156 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { LucideEye } from '@lucide/angular';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { LucideEye, LucideX } from '@lucide/angular';
+import { catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
+import { newestFirstPage } from '../../../core/http/newest-page';
 import { mapApiError } from '../../../core/http/error-message.mapper';
-import { formatOffsetDateTime } from '../../../shared/utils/date-only';
+import { addDaysDateOnly, formatDateOnly, formatOffsetDateTime, todayDateOnly } from '../../../shared/utils/date-only';
 import { purposeLabel } from '../../../shared/utils/status-mappers';
 import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
-import { AppointmentsRepository } from '../../appointments/infrastructure/appointments.repository';
+import { Appointment, AppointmentReminder, AppointmentsRepository } from '../../appointments/infrastructure/appointments.repository';
 import { PatientsRepository, Patient } from '../../patients/infrastructure/patients.repository';
-import { Reminder, RemindersRepository } from '../infrastructure/reminders.repository';
 
 interface ReminderRow {
-  reminder: Reminder;
+  appointment: Appointment;
+  reminder: AppointmentReminder | null;
   patient: Patient | null;
 }
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, EmptyStateComponent, LucideEye, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
+  imports: [AlertComponent, EmptyStateComponent, LucideEye, LucideX, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
   templateUrl: './reminders.page.html',
   styleUrl: './reminders.page.css',
 })
 export class RemindersPage {
-  private readonly repo = inject(RemindersRepository);
   private readonly appointments = inject(AppointmentsRepository);
   private readonly patients = inject(PatientsRepository);
   private readonly fb = inject(FormBuilder);
 
-  readonly rows = signal<ReminderRow[]>([]);
-  readonly visibleRows = signal<ReminderRow[]>([]);
-  readonly page = signal<PageResponse<Reminder> | null>(null);
+  readonly todayDate = signal(todayDateOnly());
+  readonly tomorrowDate = signal(addDaysDateOnly(this.todayDate(), 1));
+  readonly todayRows = signal<ReminderRow[]>([]);
+  readonly tomorrowRows = signal<ReminderRow[]>([]);
+  readonly visibleTodayRows = signal<ReminderRow[]>([]);
+  readonly visibleTomorrowRows = signal<ReminderRow[]>([]);
+  readonly todayPage = signal<PageResponse<Appointment> | null>(null);
+  readonly tomorrowPage = signal<PageResponse<Appointment> | null>(null);
   readonly selected = signal<ReminderRow | null>(null);
-  readonly loading = signal(false);
+  readonly todayLoading = signal(false);
+  readonly tomorrowLoading = signal(false);
   readonly error = signal('');
   readonly requestId = signal<string | undefined>(undefined);
   readonly form = this.fb.nonNullable.group({ status: [''], patient: [''] });
 
   constructor() {
-    this.load(0);
+    this.load();
   }
 
-  load(page: number): void {
-    this.loading.set(true);
-    this.error.set('');
-    this.repo.list({ page, size: 8 }).pipe(
-      switchMap((response) => {
-        this.page.set(response);
-        const lookups = response.content.map((reminder) => {
-          if (!reminder.credAppointmentId) {
-            return of({ reminder, patient: null });
-          }
+  load(): void {
+    const today = todayDateOnly();
+    this.todayDate.set(today);
+    this.tomorrowDate.set(addDaysDateOnly(today, 1));
+    this.loadToday(0);
+    this.loadTomorrow(0);
+  }
 
-          return this.appointments.get(reminder.credAppointmentId).pipe(
-            switchMap((detail) => this.patients.lookup(detail.appointment.patientId)),
-            catchError(() => of(null)),
-            map((patient) => ({ reminder, patient })),
-          );
-        });
-        return lookups.length ? forkJoin(lookups) : of([]);
+  loadToday(page: number): void {
+    this.loadDay(this.todayDate(), page, this.todayLoading, this.todayPage, this.todayRows);
+  }
+
+  loadTomorrow(page: number): void {
+    this.loadDay(this.tomorrowDate(), page, this.tomorrowLoading, this.tomorrowPage, this.tomorrowRows);
+  }
+
+  private loadDay(
+    scheduledDate: string,
+    page: number,
+    loading: ReturnType<typeof signal<boolean>>,
+    pageState: ReturnType<typeof signal<PageResponse<Appointment> | null>>,
+    rowsState: ReturnType<typeof signal<ReminderRow[]>>,
+  ): void {
+    loading.set(true);
+    this.error.set('');
+    newestFirstPage(page, 8, (serverPage, size) => this.appointments.list({ scheduledDate, status: 'SCHEDULED', page: serverPage, size })).pipe(
+      switchMap((response) => {
+        pageState.set(response);
+        return this.reminderRows(response.content);
       }),
+      finalize(() => loading.set(false)),
     ).subscribe({
       next: (rows) => {
-        this.rows.set(rows);
-        this.visibleRows.set(rows);
-        this.selected.set(rows[0] ?? null);
+        rowsState.set(rows);
+        this.applyRowsFilters();
       },
       error: (err) => {
         const mapped = mapApiError(err);
         this.error.set(mapped.message);
         this.requestId.set(mapped.requestId);
-        this.rows.set([]);
-        this.visibleRows.set([]);
-        this.selected.set(null);
-        this.loading.set(false);
+        pageState.set(null);
+        rowsState.set([]);
+        this.applyRowsFilters();
       },
-      complete: () => this.loading.set(false),
     });
   }
 
   applyLocal(): void {
-    const { status, patient } = this.form.getRawValue();
-    const needle = patient.trim().toLocaleLowerCase('es-PE');
-    const filtered = this.rows().filter((row) => {
-      const statusOk = !status || row.reminder.status === status;
-      const patientOk = !needle || row.patient?.name.toLocaleLowerCase('es-PE').includes(needle);
-      return statusOk && patientOk;
-    });
-
-    this.visibleRows.set(filtered);
-    this.selected.set(filtered[0] ?? null);
+    this.error.set('');
+    this.requestId.set(undefined);
+    this.applyRowsFilters();
   }
 
   clear(): void {
     this.form.reset({ status: '', patient: '' });
-    this.visibleRows.set(this.rows());
-    this.selected.set(this.rows()[0] ?? null);
+    this.error.set('');
+    this.requestId.set(undefined);
+    this.applyRowsFilters();
   }
 
-  deliverySummary(reminder: Reminder): string {
+  private reminderRows(appointments: Appointment[]) {
+    if (!appointments.length) {
+      return of([]);
+    }
+
+    return forkJoin(appointments.map((appointment) =>
+      this.appointments.get(appointment.id).pipe(
+        switchMap((detail) => this.patients.lookup(detail.appointment.patientId).pipe(
+          map((patient) => ({ appointment: detail.appointment, reminder: detail.reminder, patient })),
+        )),
+        catchError(() => this.patients.lookup(appointment.patientId).pipe(
+          map((patient) => ({ appointment, reminder: null, patient })),
+          catchError(() => of({ appointment, reminder: null, patient: null })),
+        )),
+      ),
+    ));
+  }
+
+  private applyRowsFilters(): void {
+    const { status, patient } = this.form.getRawValue();
+    const needle = patient.trim().toLocaleLowerCase('es-PE');
+    const filterRows = (rows: ReminderRow[]) => rows.filter((row) => {
+      const statusOk = !status || row.reminder?.status === status;
+      const patientOk = !needle || row.patient?.name.toLocaleLowerCase('es-PE').includes(needle);
+      return statusOk && patientOk;
+    });
+
+    const todayRows = filterRows(this.todayRows());
+    const tomorrowRows = filterRows(this.tomorrowRows());
+    this.visibleTodayRows.set(todayRows);
+    this.visibleTomorrowRows.set(tomorrowRows);
+
+    const selected = this.selected();
+    if (selected && ![...todayRows, ...tomorrowRows].some((row) => row.appointment.id === selected.appointment.id)) {
+      this.selected.set(null);
+    }
+  }
+
+  deliverySummary(row: ReminderRow): string {
+    const reminder = row.reminder;
+    if (!reminder) {
+      return 'Esta cita todavía no tiene un recordatorio asociado.';
+    }
+
     if (reminder.status === 'SENT') {
       return 'El recordatorio fue enviado correctamente.';
     }
@@ -108,7 +160,7 @@ export class RemindersPage {
     }
 
     if (reminder.status === 'CANCELLED') {
-      return reminder.cancelReason || 'El recordatorio fue cancelado y ya no se enviará.';
+      return 'El recordatorio fue cancelado y ya no se enviará.';
     }
 
     if (reminder.status === 'PROCESSING') {
@@ -118,10 +170,26 @@ export class RemindersPage {
     return 'El recordatorio está pendiente de envío.';
   }
 
-  sentLabel(reminder: Reminder): string {
-    return reminder.sentAt ? this.formatDateTime(reminder.sentAt) : 'Aún no enviado';
+  sentLabel(row: ReminderRow): string {
+    if (!row.reminder) {
+      return 'No programado';
+    }
+
+    return row.reminder.sentAt ? this.formatDateTime(row.reminder.sentAt) : 'Aún no enviado';
   }
 
+  reminderDateLabel(row: ReminderRow): string {
+    return row.reminder?.scheduledAt ? this.formatDateTime(row.reminder.scheduledAt) : 'No programado';
+  }
+
+  reminderStatus(row: ReminderRow): string {
+    return row.reminder?.status ?? 'Sin recordatorio';
+  }
+
+  reminderPurpose(row: ReminderRow): string {
+    return row.reminder ? purposeLabel(row.reminder.purpose) : 'Recordatorio CRED';
+  }
+
+  formatDate = formatDateOnly;
   formatDateTime = formatOffsetDateTime;
-  purpose = purposeLabel;
 }

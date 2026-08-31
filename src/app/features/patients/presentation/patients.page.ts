@@ -6,6 +6,7 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin } from '../../../core/auth/auth.models';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
+import { newestFirstPage } from '../../../core/http/newest-page';
 import { formatDateOnly } from '../../../shared/utils/date-only';
 import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { OrganizationStore } from '../../organization/application/organization.store';
@@ -87,16 +88,15 @@ export class PatientsPage {
     const establishment = this.selectedEstablishment();
     const microred = this.organization.microreds().find((item) => item.id === raw.microredId) ?? null;
     const red = this.reds().find((item) => item.id === raw.redId) ?? null;
-    this.repo.list({
+    const filters = {
       documentNumber: raw.documentNumber,
       clinicalHistory: raw.clinicalHistory,
       red: this.admin() ? establishment?.red?.name ?? red?.name : undefined,
       microred: this.admin() ? establishment?.microred?.name ?? microred?.name : undefined,
       establishment: this.admin() ? establishment?.name : undefined,
       active: raw.active === '' ? null : raw.active === 'true',
-      page,
-      size: 10,
-    }).subscribe({
+    };
+    newestFirstPage(page, 10, (serverPage, size) => this.repo.list({ ...filters, page: serverPage, size })).subscribe({
       next: (response) => this.page.set(response),
       error: (err) => {
         const mapped = mapApiError(err);

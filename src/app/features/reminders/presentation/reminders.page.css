@@ -2,6 +2,17 @@
   display: contents;
 }
 
+.reminder-day-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel__header p {
+  color: var(--color-muted);
+  margin: 4px 0 0;
+}
+
 .delivery-summary {
   border: 1px solid #bfdbfe;
   border-radius: var(--radius);
@@ -9,4 +20,54 @@
   color: #1e40af;
   margin: 0;
   padding: 12px 14px;
+}
+
+.reminder-detail-modal {
+  max-width: 560px;
+}
+
+.modal-header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.modal-header p {
+  color: var(--color-muted);
+  margin: 4px 0 0;
+}
+
+.reminder-detail-list {
+  display: grid;
+  gap: 12px;
+}
+
+.reminder-detail-list span {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(140px, 0.75fr) minmax(0, 1fr);
+}
+
+.reminder-detail-list strong {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+@media (max-width: 1180px) {
+  .reminder-day-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .reminder-detail-list span {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-detail-list strong {
+    text-align: left;
+  }
 }

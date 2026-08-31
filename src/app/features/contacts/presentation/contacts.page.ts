@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
+import { newestFirstPage } from '../../../core/http/newest-page';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { formatOffsetDateTime } from '../../../shared/utils/date-only';
 import { maskPhone } from '../../../shared/utils/phone';
@@ -39,7 +40,7 @@ export class ContactsPage {
 
   load(page: number): void {
     this.loading.set(true);
-    this.repo.list(page, 10).pipe(finalize(() => this.loading.set(false))).subscribe((response) => this.page.set(response));
+    newestFirstPage(page, 10, (serverPage, size) => this.repo.list(serverPage, size)).pipe(finalize(() => this.loading.set(false))).subscribe((response) => this.page.set(response));
   }
 
   newContact(): void {

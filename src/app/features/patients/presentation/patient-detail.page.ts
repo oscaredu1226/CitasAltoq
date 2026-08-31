@@ -4,6 +4,7 @@ import { LucideArrowLeft } from '@lucide/angular';
 import { catchError, forkJoin, of, switchMap } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin } from '../../../core/auth/auth.models';
+import { newestFirstPage } from '../../../core/http/newest-page';
 import { formatDateOnly } from '../../../shared/utils/date-only';
 import { statusView } from '../../../shared/utils/status-mappers';
 import { PageTitleComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
@@ -38,7 +39,7 @@ export class PatientDetailPage {
         this.appointments.set([]);
         return forkJoin({
           patient: this.patients.get(id),
-          appointments: this.patients.appointments(id, 0, 8).pipe(catchError(() => of({ content: [] }))),
+          appointments: newestFirstPage(0, 8, (page, size) => this.patients.appointments(id, page, size)).pipe(catchError(() => of({ content: [] }))),
         });
       }),
       switchMap(({ patient, appointments }) => {

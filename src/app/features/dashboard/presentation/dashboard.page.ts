@@ -1,21 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
-  LucideBell,
-  LucideCalendarCheck,
   LucideCalendarClock,
   LucideCalendarDays,
   LucideCircleCheck,
   LucideCircleX,
-  LucideFileUp,
   LucideTimer,
   LucideUsersRound,
 } from '@lucide/angular';
+import { filter, finalize, fromEvent, merge, timer } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin, organizationLabel } from '../../../core/auth/auth.models';
 import { DashboardData, DashboardFacade, DashboardFilters } from '../application/dashboard.facade';
 import { formatDateOnly } from '../../../shared/utils/date-only';
-import { statusView } from '../../../shared/utils/status-mappers';
 import { EmptyStateComponent, PageTitleComponent, StatCardComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { OrganizationStore } from '../../organization/application/organization.store';
 import { Establishment } from '../../organization/domain/organization.models';
@@ -32,8 +30,11 @@ export class DashboardPage {
   private readonly facade = inject(DashboardFacade);
   private readonly auth = inject(AuthFacade);
   private readonly organization = inject(OrganizationStore);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(true);
+  private readonly refreshing = signal(false);
   readonly data = signal<DashboardData | null>(null);
+  readonly appliedFilters = signal<DashboardFilters>({});
   readonly selectedRedId = signal('');
   readonly selectedMicroredId = signal('');
   readonly selectedEstablishmentId = signal('');
@@ -56,13 +57,10 @@ export class DashboardPage {
     return red?.name ?? 'Toda la red administrativa';
   });
   readonly icons = {
-    bell: LucideBell,
-    calendarCheck: LucideCalendarCheck,
     calendarClock: LucideCalendarClock,
     calendarDays: LucideCalendarDays,
     circleCheck: LucideCircleCheck,
     circleX: LucideCircleX,
-    fileUp: LucideFileUp,
     timer: LucideTimer,
     users: LucideUsersRound,
   };
@@ -70,14 +68,43 @@ export class DashboardPage {
   constructor() {
     this.organization.load();
     this.load();
+    merge(
+      timer(10_000, 10_000).pipe(filter(() => document.visibilityState !== 'hidden')),
+      fromEvent(window, 'focus'),
+      fromEvent(document, 'visibilitychange').pipe(filter(() => document.visibilityState === 'visible')),
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refresh());
   }
 
   load(): void {
-    this.loading.set(true);
-    this.facade.load(this.dashboardFilters()).subscribe({
+    const filters = this.dashboardFilters();
+    this.appliedFilters.set(filters);
+    this.fetch(filters, true);
+  }
+
+  refresh(): void {
+    if (this.loading() || this.refreshing()) {
+      return;
+    }
+
+    this.fetch(this.appliedFilters(), false);
+  }
+
+  private fetch(filters: DashboardFilters, showSkeleton: boolean): void {
+    if (showSkeleton) {
+      this.loading.set(true);
+    } else {
+      this.refreshing.set(true);
+    }
+
+    this.facade.load(filters).pipe(finalize(() => {
+      if (showSkeleton) {
+        this.loading.set(false);
+      } else {
+        this.refreshing.set(false);
+      }
+    })).subscribe({
       next: (data) => this.data.set(data),
-      complete: () => this.loading.set(false),
-      error: () => this.loading.set(false),
+      error: () => undefined,
     });
   }
 
@@ -105,20 +132,8 @@ export class DashboardPage {
 
   formatDate = formatDateOnly;
 
-  shortId(value: string): string {
-    return value.slice(0, 8);
-  }
-
-  chartTotal(vm: DashboardData): number {
-    return vm.confirmationChart.pending + vm.confirmationChart.confirmed + vm.confirmationChart.cannotAttend;
-  }
-
-  percent(value: number, total: number): number {
-    return total > 0 ? Math.round((value / total) * 100) : 0;
-  }
-
-  statusLabel(kind: string, value: string): string {
-    return statusView(kind, value).label;
+  dateLabel(value: string): string {
+    return formatDateOnly(value);
   }
 
   microredOptions(): OrganizationDropdownOption[] {

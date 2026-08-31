@@ -20,7 +20,11 @@ export class PaginationComponent<T> {
   }
 
   lastItem(page: PageResponse<T>): number {
-    return Math.min((page.page + 1) * page.size, page.totalElements);
+    if (!page.content.length) {
+      return this.firstItem(page);
+    }
+
+    return Math.min(page.page * page.size + page.content.length, page.totalElements);
   }
 
   pages(page: PageResponse<T>): PaginationItem[] {

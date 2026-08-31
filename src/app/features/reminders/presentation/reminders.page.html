@@ -1,7 +1,7 @@
     <app-page-title title="Recordatorios" subtitle="Listado de recordatorios CRED y su estado de envío." />
     <app-alert title="No pudimos cargar recordatorios" [message]="error()" [requestId]="requestId()" tone="red" />
     <section class="filter-panel" [formGroup]="form">
-      <label>Estado <small>Filtro local</small>
+      <label>Estado
         <select formControlName="status">
           <option value="">Todos</option>
           <option value="PENDING">Pendiente</option>
@@ -11,30 +11,34 @@
           <option value="CANCELLED">Cancelado</option>
         </select>
       </label>
-      <label>Paciente <small>Filtro local</small><input formControlName="patient" placeholder="Buscar paciente..." /></label>
+      <label>Paciente<input formControlName="patient" placeholder="Buscar paciente..." /></label>
       <div class="filter-panel__actions">
         <button class="button button--primary" type="button" (click)="applyLocal()">Aplicar filtros</button>
         <button class="button" type="button" (click)="clear()">Limpiar filtros</button>
       </div>
     </section>
-    <section class="split-grid">
+    <section class="reminder-day-grid">
       <article class="panel">
-        <div class="panel__header"><h2>Recordatorios encontrados</h2></div>
-        @if (loading()) {
+        <div class="panel__header">
+          <div>
+            <h2>Recordatorios de citas de hoy</h2>
+            <p>{{ formatDate(todayDate()) }}</p>
+          </div>
+        </div>
+        @if (todayLoading()) {
           <div class="skeleton-table"></div>
-        } @else if (rows().length) {
+        } @else if (todayRows().length) {
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Paciente</th><th>Cita</th><th>Fecha programada</th><th>Estado</th><th>Plantilla</th><th>Propósito</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Paciente</th><th>Documento</th><th>Cita</th><th>Recordatorio</th><th>Estado</th><th>Acción</th></tr></thead>
               <tbody>
-                @for (row of visibleRows(); track row.reminder.id) {
+                @for (row of visibleTodayRows(); track row.appointment.id) {
                   <tr>
                     <td>{{ row.patient?.name || 'Paciente no disponible' }}</td>
-                    <td>{{ row.reminder.credAppointmentId ? 'Cita vinculada' : '-' }}</td>
-                    <td>{{ formatDateTime(row.reminder.scheduledAt) }}</td>
-                    <td><app-status-badge kind="reminder" [value]="row.reminder.status" /></td>
-                    <td>{{ row.reminder.templateId ? 'Plantilla vinculada' : '-' }}</td>
-                    <td>{{ purpose(row.reminder.purpose) }}</td>
+                    <td>{{ row.patient?.documentNumber || '-' }}</td>
+                    <td>{{ formatDate(row.appointment.scheduledDate) }}</td>
+                    <td>{{ reminderDateLabel(row) }}</td>
+                    <td><app-status-badge kind="reminder" [value]="reminderStatus(row)" /></td>
                     <td>
                       <button class="icon-button" type="button" (click)="selected.set(row)" aria-label="Ver detalle">
                         <svg lucideEye size="17" aria-hidden="true"></svg>
@@ -45,27 +49,85 @@
               </tbody>
             </table>
           </div>
-          <app-pagination [page]="page()" (goTo)="load($event)" />
+          <app-pagination [page]="todayPage()" (goTo)="loadToday($event)" />
+          @if (!visibleTodayRows().length) {
+            <app-empty-state title="No hay recordatorios de hoy con estos filtros." text="Ajusta el estado o el nombre del paciente." />
+          }
         } @else {
-          <app-empty-state title="No se encontraron recordatorios." />
+          <app-empty-state title="No hay citas programadas para hoy." text="Los recordatorios de hoy aparecerán cuando existan citas para la fecha actual." />
         }
       </article>
-      <aside class="quick-panel">
-        <h2>Detalle del recordatorio</h2>
-        @if (selected(); as row) {
-          <span>Paciente <strong>{{ row.patient?.name || 'Paciente no disponible' }}</strong></span>
-          @if (row.patient?.documentNumber) {
-            <span>Documento <strong>{{ row.patient?.documentNumber }}</strong></span>
+
+      <article class="panel">
+        <div class="panel__header">
+          <div>
+            <h2>Recordatorios de citas de mañana</h2>
+            <p>{{ formatDate(tomorrowDate()) }}</p>
+          </div>
+        </div>
+        @if (tomorrowLoading()) {
+          <div class="skeleton-table"></div>
+        } @else if (tomorrowRows().length) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Paciente</th><th>Documento</th><th>Cita</th><th>Recordatorio</th><th>Estado</th><th>Acción</th></tr></thead>
+              <tbody>
+                @for (row of visibleTomorrowRows(); track row.appointment.id) {
+                  <tr>
+                    <td>{{ row.patient?.name || 'Paciente no disponible' }}</td>
+                    <td>{{ row.patient?.documentNumber || '-' }}</td>
+                    <td>{{ formatDate(row.appointment.scheduledDate) }}</td>
+                    <td>{{ reminderDateLabel(row) }}</td>
+                    <td><app-status-badge kind="reminder" [value]="reminderStatus(row)" /></td>
+                    <td>
+                      <button class="icon-button" type="button" (click)="selected.set(row)" aria-label="Ver detalle">
+                        <svg lucideEye size="17" aria-hidden="true"></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pagination [page]="tomorrowPage()" (goTo)="loadTomorrow($event)" />
+          @if (!visibleTomorrowRows().length) {
+            <app-empty-state title="No hay recordatorios de mañana con estos filtros." text="Ajusta el estado o el nombre del paciente." />
           }
-          <span>Cita <strong>{{ row.reminder.credAppointmentId ? 'Cita CRED vinculada' : 'Sin cita vinculada' }}</strong></span>
-          <span>Estado <app-status-badge kind="reminder" [value]="row.reminder.status" /></span>
-          <span>Fecha programada <strong>{{ formatDateTime(row.reminder.scheduledAt) }}</strong></span>
-          <span>Fecha de envío <strong>{{ sentLabel(row.reminder) }}</strong></span>
-          <span>Propósito <strong>{{ purpose(row.reminder.purpose) }}</strong></span>
-          <p class="delivery-summary">{{ deliverySummary(row.reminder) }}</p>
         } @else {
-          <p class="muted">Selecciona un recordatorio para ver su detalle.</p>
+          <app-empty-state title="No hay citas programadas para mañana." text="Los recordatorios de mañana aparecerán cuando existan citas para esa fecha." />
         }
-      </aside>
+      </article>
     </section>
+
+    @if (selected(); as row) {
+      <div class="modal-backdrop" role="presentation">
+        <section class="modal reminder-detail-modal" role="dialog" aria-modal="true" aria-label="Detalle del recordatorio">
+          <div class="modal-header">
+            <div>
+              <h2>Detalle del recordatorio</h2>
+              <p>{{ row.patient?.name || 'Paciente no disponible' }}</p>
+            </div>
+            <button class="icon-button" type="button" (click)="selected.set(null)" aria-label="Cerrar detalle">
+              <svg lucideX size="18" aria-hidden="true"></svg>
+            </button>
+          </div>
+          <div class="reminder-detail-list">
+            <span>Paciente <strong>{{ row.patient?.name || 'Paciente no disponible' }}</strong></span>
+            @if (row.patient?.documentNumber) {
+              <span>Documento <strong>{{ row.patient?.documentNumber }}</strong></span>
+            }
+            <span>Fecha de cita <strong>{{ formatDate(row.appointment.scheduledDate) }}</strong></span>
+            <span>Confirmación de cita <app-status-badge kind="confirmation" [value]="row.appointment.confirmationStatus" /></span>
+            <span>Estado del recordatorio <app-status-badge kind="reminder" [value]="reminderStatus(row)" /></span>
+            <span>Recordatorio programado <strong>{{ reminderDateLabel(row) }}</strong></span>
+            <span>Fecha de envío <strong>{{ sentLabel(row) }}</strong></span>
+            <span>Propósito <strong>{{ reminderPurpose(row) }}</strong></span>
+          </div>
+          <p class="delivery-summary">{{ deliverySummary(row) }}</p>
+          <div class="modal__actions">
+            <button class="button button--primary" type="button" (click)="selected.set(null)">Entendido</button>
+          </div>
+        </section>
+      </div>
+    }
   

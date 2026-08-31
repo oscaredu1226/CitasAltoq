@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
+import { newestFirstPage } from '../../../core/http/newest-page';
 import { formatDateOnly } from '../../../shared/utils/date-only';
 import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { Appointment, AppointmentsRepository } from '../infrastructure/appointments.repository';
@@ -50,7 +51,7 @@ export class AppointmentsPage {
     this.loading.set(true);
     this.error.set('');
     const filters = this.form.getRawValue();
-    this.repo.list({ ...filters, page, size: 8 }).pipe(
+    newestFirstPage(page, 8, (serverPage, size) => this.repo.list({ ...filters, page: serverPage, size })).pipe(
       switchMap((response) => {
         this.page.set(response);
         const lookups = response.content.map((appointment) =>
