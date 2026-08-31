@@ -1,3 +1,12 @@
 :host {
   display: contents;
 }
+
+.delivery-summary {
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  background: #eff6ff;
+  color: #1e40af;
+  margin: 0;
+  padding: 12px 14px;
+}

@@ -1,4 +1,5 @@
     <app-page-title title="Recordatorios" subtitle="Listado de recordatorios CRED y su estado de envío." />
+    <app-alert title="No pudimos cargar recordatorios" [message]="error()" [requestId]="requestId()" tone="red" />
     <section class="filter-panel" [formGroup]="form">
       <label>Estado <small>Filtro local</small>
         <select formControlName="status">
@@ -19,7 +20,9 @@
     <section class="split-grid">
       <article class="panel">
         <div class="panel__header"><h2>Recordatorios encontrados</h2></div>
-        @if (rows().length) {
+        @if (loading()) {
+          <div class="skeleton-table"></div>
+        } @else if (rows().length) {
           <div class="table-wrap">
             <table>
               <thead><tr><th>Paciente</th><th>Cita</th><th>Fecha programada</th><th>Estado</th><th>Plantilla</th><th>Propósito</th><th>Acción</th></tr></thead>
@@ -33,7 +36,7 @@
                     <td>{{ row.reminder.templateId ? 'Plantilla vinculada' : '-' }}</td>
                     <td>{{ purpose(row.reminder.purpose) }}</td>
                     <td>
-                      <button class="icon-button" type="button" (click)="selected.set(row.reminder)" aria-label="Ver detalle">
+                      <button class="icon-button" type="button" (click)="selected.set(row)" aria-label="Ver detalle">
                         <svg lucideEye size="17" aria-hidden="true"></svg>
                       </button>
                     </td>
@@ -49,13 +52,17 @@
       </article>
       <aside class="quick-panel">
         <h2>Detalle del recordatorio</h2>
-        @if (selected(); as r) {
-          <span>Estado <app-status-badge kind="reminder" [value]="r.status" /></span>
-          <span>ID del recordatorio <strong>{{ r.id }}</strong></span>
-          <span>Fecha programada <strong>{{ formatDateTime(r.scheduledAt) }}</strong></span>
-          <span>Fecha de envío <strong>{{ formatDateTime(r.sentAt) }}</strong></span>
-          <span>Propósito <strong>{{ purpose(r.purpose) }}</strong></span>
-          <span>Último error <strong>{{ r.failureReason || '-' }}</strong></span>
+        @if (selected(); as row) {
+          <span>Paciente <strong>{{ row.patient?.name || 'Paciente no disponible' }}</strong></span>
+          @if (row.patient?.documentNumber) {
+            <span>Documento <strong>{{ row.patient?.documentNumber }}</strong></span>
+          }
+          <span>Cita <strong>{{ row.reminder.credAppointmentId ? 'Cita CRED vinculada' : 'Sin cita vinculada' }}</strong></span>
+          <span>Estado <app-status-badge kind="reminder" [value]="row.reminder.status" /></span>
+          <span>Fecha programada <strong>{{ formatDateTime(row.reminder.scheduledAt) }}</strong></span>
+          <span>Fecha de envío <strong>{{ sentLabel(row.reminder) }}</strong></span>
+          <span>Propósito <strong>{{ purpose(row.reminder.purpose) }}</strong></span>
+          <p class="delivery-summary">{{ deliverySummary(row.reminder) }}</p>
         } @else {
           <p class="muted">Selecciona un recordatorio para ver su detalle.</p>
         }
