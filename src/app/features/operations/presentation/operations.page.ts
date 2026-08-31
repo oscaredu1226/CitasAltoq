@@ -13,7 +13,6 @@ import {
   OperationsRepository,
   OperationsStatus,
   ReminderAudience,
-  ReminderAudienceMode,
 } from '../infrastructure/operations.repository';
 
 @Component({
@@ -29,18 +28,15 @@ export class OperationsPage {
   readonly organizations = inject(OrganizationStore);
   readonly status = signal<OperationsStatus | null>(null);
   readonly audience = signal<ReminderAudience | null>(null);
-  readonly mode = signal<ReminderAudienceMode>('SELECTED');
   readonly selectedIds = signal<Set<string>>(new Set());
   readonly establishmentNameFilter = signal('');
   readonly redFilter = signal('');
   readonly microredFilter = signal('');
-  readonly confirmAllOpen = signal(false);
   readonly saveConfirmationOpen = signal(false);
   readonly mfaOpen = signal(false);
   readonly audiencePermissionChecked = signal(false);
   readonly audienceAllowed = signal(false);
   readonly audienceForbidden = signal(false);
-  readonly persistedMode = signal<ReminderAudienceMode>('SELECTED');
   readonly persistedIds = signal<Set<string>>(new Set());
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -82,8 +78,7 @@ export class OperationsPage {
       .sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
   });
   readonly selectedWithoutDetails = computed(() => Math.max(0, this.selectedIds().size - this.selectedEstablishments().length));
-  readonly hasAudienceChanges = computed(() => this.mode() !== this.persistedMode()
-    || !sameSet(this.selectedIds(), this.persistedIds()));
+  readonly hasAudienceChanges = computed(() => !sameSet(this.selectedIds(), this.persistedIds()));
   readonly canSelectFiltered = computed(() => this.filteredEstablishments().some((establishment) => !this.selectedIds().has(establishment.id)));
   readonly canDeselectAll = computed(() => this.selectedIds().size > 0);
   readonly canSave = computed(() => !this.saving()
@@ -112,18 +107,11 @@ export class OperationsPage {
         this.loadAudience();
       }
     });
-  }
-
-  selectMode(mode: ReminderAudienceMode): void {
-    if (mode === 'ALL' && this.mode() !== 'ALL') {
-      this.confirmAllOpen.set(true);
-      return;
-    }
-
-    this.mode.set(mode);
-    this.saveConfirmationOpen.set(false);
-    this.error.set('');
-    this.message.set('');
+    effect(() => {
+      if (this.audience()?.mode === 'ALL' && !this.hasAudienceChanges()) {
+        this.applyAllAsSelected();
+      }
+    });
   }
 
   updateNameFilter(value: string): void {
@@ -145,14 +133,6 @@ export class OperationsPage {
     this.establishmentNameFilter.set('');
     this.redFilter.set('');
     this.microredFilter.set('');
-  }
-
-  confirmAll(): void {
-    this.mode.set('ALL');
-    this.confirmAllOpen.set(false);
-    this.saveConfirmationOpen.set(false);
-    this.error.set('');
-    this.message.set('');
   }
 
   toggleEstablishment(id: string, checked: boolean): void {
@@ -208,10 +188,8 @@ export class OperationsPage {
     }
 
     const request = {
-      mode: this.mode(),
-      establishmentIds: this.mode() === 'ALL'
-        ? []
-        : Array.from(this.selectedIds(), (id) => Number(id)),
+      mode: 'SELECTED' as const,
+      establishmentIds: Array.from(this.selectedIds(), (id) => Number(id)),
     };
     this.saveConfirmationOpen.set(false);
     this.saving.set(true);
@@ -278,10 +256,16 @@ export class OperationsPage {
 
   private applyAudience(audience: ReminderAudience): void {
     this.audience.set(audience);
-    this.mode.set(audience.mode);
-    const selectedIds = new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id)));
+    const selectedIds = audience.mode === 'ALL'
+      ? new Set(this.activeEstablishments().map((item) => item.id))
+      : new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id)));
     this.selectedIds.set(selectedIds);
-    this.persistedMode.set(audience.mode);
+    this.persistedIds.set(new Set(selectedIds));
+  }
+
+  private applyAllAsSelected(): void {
+    const selectedIds = new Set(this.activeEstablishments().map((item) => item.id));
+    this.selectedIds.set(selectedIds);
     this.persistedIds.set(new Set(selectedIds));
   }
 
