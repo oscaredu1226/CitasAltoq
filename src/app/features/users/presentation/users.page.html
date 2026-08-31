@@ -48,11 +48,11 @@
       <div class="drawer">
         <form class="drawer__panel" [formGroup]="form" (ngSubmit)="save()">
           <h2>{{ selected()?.id ? 'Editar usuario' : 'Crear usuario' }}</h2>
-          <label>Correo<input type="email" formControlName="email" /></label>
-          <label>Nombre visible<input formControlName="displayName" /></label>
+          <label>Correo<input type="email" formControlName="email" /><app-field-error [control]="form.controls.email" /></label>
+          <label>Nombre visible<input formControlName="displayName" /><app-field-error [control]="form.controls.displayName" /></label>
           @if (!selected()) {
-            <label>Contraseña<input type="password" formControlName="password" /></label>
-            <label>Confirmar contraseña<input type="password" formControlName="confirm" /></label>
+            <label>Contraseña<input type="password" formControlName="password" /><app-field-error [control]="form.controls.password" /></label>
+            <label>Confirmar contraseña<input type="password" formControlName="confirm" /><app-field-error [control]="form.controls.confirm" /></label>
           }
           <label>Tipo de cuenta
             <select formControlName="accountType">
@@ -64,8 +64,9 @@
             <app-establishment-select
               [disabled]="!!selected()"
               [selectedId]="form.controls.establishmentId.value"
-              (selectedIdChange)="form.controls.establishmentId.setValue($event)"
+              (selectedIdChange)="selectEstablishment($event)"
             />
+            <app-field-error [control]="form.controls.establishmentId" />
           } @else {
             <p class="info-note">La cuenta administradora tendrá acceso global y no requiere establecimiento.</p>
           }
@@ -91,7 +92,9 @@
           <p class="info-note">No se solicita contraseña anterior. La nueva contraseña debe tener al menos 8 caracteres.</p>
           <strong>{{ user.email }}</strong>
           <label>Nueva contraseña<input type="password" formControlName="password" /></label>
+          <app-field-error [control]="passwordForm.controls.password" />
           <label>Confirmar contraseña<input type="password" formControlName="confirm" /></label>
+          <app-field-error [control]="passwordForm.controls.confirm" />
           <div class="modal__actions">
             <button class="button" type="button" (click)="passwordUser.set(null)">Cancelar</button>
             <button class="button button--primary" type="submit">Restablecer contraseña</button>

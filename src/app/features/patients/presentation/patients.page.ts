@@ -77,6 +77,10 @@ export class PatientsPage {
       return;
     }
 
+    if (!this.filtersValid()) {
+      return;
+    }
+
     this.loading.set(true);
     this.error.set('');
     const raw = this.form.getRawValue();
@@ -134,6 +138,31 @@ export class PatientsPage {
   selectedEstablishment(): Establishment | null {
     const establishmentId = this.form.controls.establishmentId.value;
     return this.organization.establishments().find((item) => item.id === establishmentId) ?? null;
+  }
+
+  private filtersValid(): boolean {
+    const raw = this.form.getRawValue();
+    const documentNumber = raw.documentNumber.trim();
+
+    if (documentNumber && !/^\d+$/.test(documentNumber)) {
+      this.error.set('El documento debe contener solo números.');
+      this.requestId.set(undefined);
+      return false;
+    }
+
+    if (raw.microredId && raw.redId && !this.microredOptions().some((microred) => microred.id === raw.microredId)) {
+      this.error.set('La Microred seleccionada no pertenece a la Red elegida.');
+      this.requestId.set(undefined);
+      return false;
+    }
+
+    if (raw.establishmentId && !this.selectedEstablishment()) {
+      this.error.set('El establecimiento seleccionado ya no está disponible. Vuelve a seleccionarlo.');
+      this.requestId.set(undefined);
+      return false;
+    }
+
+    return true;
   }
 
   formatDate = formatDateOnly;

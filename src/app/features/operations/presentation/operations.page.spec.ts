@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { CurrentUser } from '../../../core/auth/auth.models';
@@ -27,6 +27,13 @@ const establishments = [
   },
   {
     id: '2',
+    name: 'Puesto de Salud Alto Selva Alegre',
+    active: true,
+    microred: { id: '12', name: 'Microred Alto Selva Alegre' },
+    red: { id: '21', name: 'Red Arequipa Norte' },
+  },
+  {
+    id: '3',
     name: 'Centro de Salud Inactivo',
     active: false,
     microred: { id: '11', name: 'Microred Inactiva' },
@@ -68,10 +75,14 @@ describe('OperationsPage', () => {
   };
   let fixture: ComponentFixture<OperationsPage>;
 
-  function configure(masterAdmin: boolean, audience: ReminderAudience = selectedAudience): void {
+  function configure(
+    masterAdmin: boolean,
+    audience: ReminderAudience = selectedAudience,
+    reminderAudienceResult: Observable<ReminderAudience> = of(audience),
+  ): void {
     repository = {
       status: vi.fn(() => of(status)),
-      reminderAudience: vi.fn(() => of(audience)),
+      reminderAudience: vi.fn(() => reminderAudienceResult),
       updateReminderAudience: vi.fn(() => of({ ...audience, updatedAt: '2026-08-30T23:30:00Z' })),
     };
 
@@ -97,11 +108,19 @@ describe('OperationsPage', () => {
     fixture.detectChanges();
   }
 
-  it('hides reminder audience settings for non-master admins', () => {
+  it('shows a restricted state when the backend denies a non-master admin', () => {
+    configure(false, selectedAudience, throwError(() => new HttpErrorResponse({ status: 403 })));
+
+    expect(repository.reminderAudience).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('Establecimientos habilitados para recordatorios');
+    expect(fixture.nativeElement.textContent).toContain('Administrador maestro requerido');
+  });
+
+  it('shows reminder audience settings when the backend authorizes the current admin', () => {
     configure(false);
 
-    expect(repository.reminderAudience).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).not.toContain('Establecimientos habilitados para recordatorios');
+    expect(repository.reminderAudience).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Establecimientos habilitados para recordatorios');
   });
 
   it('shows only active establishments for master admins', () => {
@@ -109,7 +128,32 @@ describe('OperationsPage', () => {
 
     expect(repository.reminderAudience).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Centro de Salud Mariano Melgar');
+    expect(fixture.nativeElement.textContent).toContain('Puesto de Salud Alto Selva Alegre');
     expect(fixture.nativeElement.textContent).not.toContain('Centro de Salud Inactivo');
+  });
+
+  it('filters active establishments by name, Red and Microred', () => {
+    configure(true);
+
+    fixture.componentInstance.updateNameFilter('mariano');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Centro de Salud Mariano Melgar');
+    expect(fixture.nativeElement.textContent).not.toContain('Puesto de Salud Alto Selva Alegre');
+
+    fixture.componentInstance.updateNameFilter('');
+    fixture.componentInstance.updateRedFilter('21');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Centro de Salud Mariano Melgar');
+    expect(fixture.nativeElement.textContent).toContain('Puesto de Salud Alto Selva Alegre');
+
+    fixture.componentInstance.updateRedFilter('');
+    fixture.componentInstance.updateMicroredFilter('10');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Centro de Salud Mariano Melgar');
+    expect(fixture.nativeElement.textContent).not.toContain('Puesto de Salud Alto Selva Alegre');
   });
 
   it('disables saving selected mode without active establishments', () => {

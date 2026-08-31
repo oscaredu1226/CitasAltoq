@@ -43,6 +43,10 @@ export class AppointmentsPage {
   }
 
   load(page: number): void {
+    if (!this.filtersValid()) {
+      return;
+    }
+
     this.loading.set(true);
     this.error.set('');
     const filters = this.form.getRawValue();
@@ -72,6 +76,17 @@ export class AppointmentsPage {
   clear(): void {
     this.form.reset({ fromDate: '', toDate: '', status: '', confirmationStatus: '', establishment: '' });
     this.load(0);
+  }
+
+  private filtersValid(): boolean {
+    const { fromDate, toDate } = this.form.getRawValue();
+    if (fromDate && toDate && fromDate > toDate) {
+      this.error.set('La fecha "Desde" no puede ser posterior a la fecha "Hasta".');
+      this.requestId.set(undefined);
+      return false;
+    }
+
+    return true;
   }
 
   formatDate = formatDateOnly;

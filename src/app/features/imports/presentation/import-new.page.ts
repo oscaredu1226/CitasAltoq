@@ -76,6 +76,32 @@ export class ImportNewPage {
     }
   });
   readonly loadingOpen = computed(() => ['uploading', 'analyzing', 'applying', 'processing'].includes(this.state()));
+  readonly analyzeBlockedMessage = computed(() => {
+    if (['uploading', 'analyzing', 'applying', 'processing'].includes(this.state())) {
+      return 'Espera a que termine la operación actual antes de continuar.';
+    }
+
+    if (!this.file()) {
+      return 'Selecciona un archivo XLSX para habilitar el análisis.';
+    }
+
+    return '';
+  });
+  readonly applyBlockedMessage = computed(() => {
+    if (this.canApply()) {
+      return '';
+    }
+
+    if (['uploading', 'analyzing', 'applying', 'processing'].includes(this.state())) {
+      return 'Espera a que el servidor termine la operación actual.';
+    }
+
+    if (!this.preview()) {
+      return 'Primero analiza el archivo para revisar la vista previa.';
+    }
+
+    return 'La importación solo puede aplicarse cuando la vista previa está lista.';
+  });
   readonly loadingHint = computed(() => {
     switch (this.state()) {
       case 'uploading':
@@ -194,6 +220,8 @@ export class ImportNewPage {
       this.message.set('Selecciona un archivo XLSX válido.');
       this.error.set(true);
       this.state.set('failed');
+      this.file.set(null);
+      this.preview.set(null);
       return;
     }
     this.file.set(file);

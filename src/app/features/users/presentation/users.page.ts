@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideKeyRound, LucidePencil, LucidePlus, LucideSave, LucideX } from '@lucide/angular';
 import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { roleLabel, UserRole } from '../../../core/auth/auth.models';
-import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
+import { AlertComponent, EmptyStateComponent, FieldErrorComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { EstablishmentSelectComponent } from '../../organization/presentation/establishment-select/establishment-select.component';
 import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
 
@@ -14,6 +14,7 @@ import { AdminUser, UsersRepository } from '../infrastructure/users.repository';
     AlertComponent,
     EmptyStateComponent,
     EstablishmentSelectComponent,
+    FieldErrorComponent,
     LucideKeyRound,
     LucidePencil,
     LucidePlus,
@@ -82,23 +83,16 @@ export class UsersPage {
   }
 
   save(): void {
+    this.applyUserValidation();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      return;
-    }
-    const value = this.form.getRawValue();
-    const selected = this.selected();
-    if (!selected && (!value.password || value.password !== value.confirm)) {
-      this.message.set('Confirma que ambas contraseñas coincidan y tengan al menos 8 caracteres.');
+      this.message.set('Corrige los campos marcados antes de guardar el usuario.');
       this.error.set(true);
       return;
     }
 
-    if (!selected && value.accountType === 'ESTABLISHMENT_OPERATOR' && !value.establishmentId) {
-      this.message.set('El operador debe tener un establecimiento asignado.');
-      this.error.set(true);
-      return;
-    }
+    const value = this.form.getRawValue();
+    const selected = this.selected();
 
     const request = selected
       ? this.repo.update(selected.id, { email: value.email, displayName: value.displayName, active: value.active })
@@ -127,11 +121,24 @@ export class UsersPage {
     this.passwordUser.set(user);
   }
 
+  selectEstablishment(establishmentId: string): void {
+    this.form.controls.establishmentId.setValue(establishmentId);
+    this.form.controls.establishmentId.markAsDirty();
+    if (establishmentId) {
+      this.clearControlErrors(this.form.controls.establishmentId, ['required']);
+    }
+  }
+
   savePassword(user: AdminUser): void {
     const value = this.passwordForm.getRawValue();
-    if (this.passwordForm.invalid || value.password !== value.confirm) {
+    this.clearControlErrors(this.passwordForm.controls.confirm, ['passwordMismatch']);
+    if (value.password && value.confirm && value.password !== value.confirm) {
+      this.addControlError(this.passwordForm.controls.confirm, 'passwordMismatch');
+    }
+
+    if (this.passwordForm.invalid) {
       this.passwordForm.markAllAsTouched();
-      this.message.set('Confirma que ambas contraseñas coincidan y tengan al menos 8 caracteres.');
+      this.message.set('Corrige la nueva contraseña antes de guardar.');
       this.error.set(true);
       return;
     }
@@ -174,5 +181,39 @@ export class UsersPage {
     this.message.set(mapped.message);
     this.requestId.set(mapped.requestId);
     this.error.set(true);
+  }
+
+  private applyUserValidation(): void {
+    const value = this.form.getRawValue();
+    const selected = this.selected();
+    this.clearControlErrors(this.form.controls.password, ['required']);
+    this.clearControlErrors(this.form.controls.confirm, ['required', 'passwordMismatch']);
+    this.clearControlErrors(this.form.controls.establishmentId, ['required']);
+
+    if (!selected && !value.password) {
+      this.addControlError(this.form.controls.password, 'required');
+    }
+
+    if (!selected && !value.confirm) {
+      this.addControlError(this.form.controls.confirm, 'required');
+    }
+
+    if (!selected && value.password && value.confirm && value.password !== value.confirm) {
+      this.addControlError(this.form.controls.confirm, 'passwordMismatch');
+    }
+
+    if (!selected && value.accountType === 'ESTABLISHMENT_OPERATOR' && !value.establishmentId) {
+      this.addControlError(this.form.controls.establishmentId, 'required');
+    }
+  }
+
+  private addControlError(control: AbstractControl, key: string): void {
+    control.setErrors({ ...(control.errors ?? {}), [key]: true });
+  }
+
+  private clearControlErrors(control: AbstractControl, keys: string[]): void {
+    const errors = { ...(control.errors ?? {}) };
+    keys.forEach((key) => delete errors[key]);
+    control.setErrors(Object.keys(errors).length ? errors : null);
   }
 }

@@ -4,12 +4,12 @@ import { PageResponse } from '../../../core/http/page-response';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { formatOffsetDateTime } from '../../../shared/utils/date-only';
 import { maskPhone } from '../../../shared/utils/phone';
-import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
+import { AlertComponent, EmptyStateComponent, FieldErrorComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { ConsentStatus, Contact, ContactsRepository } from '../infrastructure/contacts.repository';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
+  imports: [AlertComponent, EmptyStateComponent, FieldErrorComponent, PageTitleComponent, PaginationComponent, ReactiveFormsModule, StatusBadgeComponent],
   templateUrl: './contacts.page.html',
   styleUrl: './contacts.page.css',
 })
@@ -54,6 +54,8 @@ export class ContactsPage {
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.message.set('Corrige los campos marcados antes de guardar el contacto.');
+      this.error.set(true);
       return;
     }
     const value = this.form.getRawValue();

@@ -26,6 +26,12 @@
   min-width: 180px;
 }
 
+.validation-note {
+  color: var(--color-muted);
+  margin: -4px 0 0;
+  text-align: right;
+}
+
 .import-loading-backdrop {
   z-index: 70;
 }
@@ -39,6 +45,10 @@
   .import-actions .button,
   .import-actions .button--primary {
     width: 100%;
+  }
+
+  .validation-note {
+    text-align: left;
   }
 }
 

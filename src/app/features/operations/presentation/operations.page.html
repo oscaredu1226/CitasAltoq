@@ -10,7 +10,7 @@
       </section>
     }
 
-    @if (masterAdmin()) {
+    @if (canManageAudience()) {
       <section class="panel audience-panel">
         <div class="audience-header">
           <div>
@@ -41,8 +41,41 @@
           } @else if (organizations.error()) {
             <app-alert title="Catálogo de establecimientos" [message]="organizations.error()" tone="red" />
           } @else {
+            <div class="audience-filters" aria-label="Filtros de establecimientos">
+              <label>
+                Nombre
+                <input
+                  type="search"
+                  placeholder="Buscar establecimiento..."
+                  [value]="establishmentNameFilter()"
+                  (input)="updateNameFilter($any($event.target).value)"
+                />
+              </label>
+              <label>
+                Red
+                <select [value]="redFilter()" (change)="updateRedFilter($any($event.target).value)">
+                  <option value="">Todas las redes</option>
+                  @for (red of redOptions(); track red.id) {
+                    <option [value]="red.id">{{ red.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                Microred
+                <select [value]="microredFilter()" (change)="updateMicroredFilter($any($event.target).value)">
+                  <option value="">Todas las microredes</option>
+                  @for (microred of microredOptions(); track microred.id) {
+                    <option [value]="microred.id">{{ microred.name }}</option>
+                  }
+                </select>
+              </label>
+              <button class="button" type="button" [disabled]="!filtersApplied()" (click)="clearFilters()">Limpiar filtros</button>
+            </div>
+            <div class="filtered-summary">
+              Mostrando {{ filteredEstablishments().length }} de {{ activeEstablishments().length }} establecimientos activos.
+            </div>
             <div class="establishment-list">
-              @for (establishment of activeEstablishments(); track establishment.id) {
+              @for (establishment of filteredEstablishments(); track establishment.id) {
                 <label class="establishment-row">
                   <input
                     type="checkbox"
@@ -55,7 +88,7 @@
                   </span>
                 </label>
               } @empty {
-                <p class="muted">No hay establecimientos disponibles en el catálogo.</p>
+                <p class="muted">No hay establecimientos activos para los filtros seleccionados.</p>
               }
             </div>
           }
@@ -72,6 +105,9 @@
             {{ saving() ? 'Guardando...' : 'Guardar alcance' }}
           </button>
         </div>
+        @if (saveBlockedMessage()) {
+          <p class="audience-validation">{{ saveBlockedMessage() }}</p>
+        }
       </section>
 
       @if (confirmAllOpen()) {
@@ -86,5 +122,11 @@
           </section>
         </div>
       }
+    } @else if (adminUser() && audienceForbidden()) {
+      <section class="panel audience-restricted">
+        <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Administrador maestro requerido</span>
+        <h2>Alcance de recordatorios no disponible</h2>
+        <p>El backend respondió 403 para esta sesión. Solo un usuario con <strong>masterAdmin: true</strong> puede modificar qué establecimientos reciben recordatorios CRED.</p>
+      </section>
     }
   

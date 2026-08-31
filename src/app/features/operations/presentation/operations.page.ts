@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { LucideSave, LucideShieldCheck } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
-import { isMasterAdmin } from '../../../core/auth/auth.models';
+import { isAdmin, isMasterAdmin } from '../../../core/auth/auth.models';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { AlertComponent, PageTitleComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
 import { OrganizationStore } from '../../organization/application/organization.store';
@@ -28,21 +28,69 @@ export class OperationsPage {
   readonly audience = signal<ReminderAudience | null>(null);
   readonly mode = signal<ReminderAudienceMode>('SELECTED');
   readonly selectedIds = signal<Set<string>>(new Set());
+  readonly establishmentNameFilter = signal('');
+  readonly redFilter = signal('');
+  readonly microredFilter = signal('');
   readonly confirmAllOpen = signal(false);
+  readonly audiencePermissionChecked = signal(false);
+  readonly audienceAllowed = signal(false);
+  readonly audienceForbidden = signal(false);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly adminUser = computed(() => isAdmin(this.auth.session.user()));
   readonly masterAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
+  readonly canManageAudience = computed(() => this.masterAdmin() || this.audienceAllowed());
   readonly activeEstablishments = computed(() => this.organizations.establishments().filter((establishment) => establishment.active !== false));
+  readonly redOptions = computed(() => uniqueOptions(this.activeEstablishments().map((establishment) => establishment.red)));
+  readonly microredOptions = computed(() => {
+    const selectedRedId = this.redFilter();
+    return uniqueOptions(this.activeEstablishments()
+      .filter((establishment) => !selectedRedId || establishment.red.id === selectedRedId)
+      .map((establishment) => establishment.microred));
+  });
+  readonly filteredEstablishments = computed(() => {
+    const term = normalizeSearch(this.establishmentNameFilter());
+    const redId = this.redFilter();
+    const microredId = this.microredFilter();
+
+    return this.activeEstablishments().filter((establishment) => {
+      const matchesName = !term || normalizeSearch(establishment.name).includes(term);
+      const matchesRed = !redId || establishment.red.id === redId;
+      const matchesMicrored = !microredId || establishment.microred.id === microredId;
+
+      return matchesName && matchesRed && matchesMicrored;
+    });
+  });
+  readonly filtersApplied = computed(() => Boolean(
+    this.establishmentNameFilter().trim()
+      || this.redFilter()
+      || this.microredFilter(),
+  ));
   readonly canSave = computed(() => !this.saving()
     && (this.mode() === 'ALL' || this.selectedIds().size > 0));
+  readonly saveBlockedMessage = computed(() => {
+    if (this.canSave()) {
+      return '';
+    }
+
+    if (this.saving()) {
+      return 'Estamos guardando la configuración. Espera un momento.';
+    }
+
+    if (this.mode() === 'SELECTED' && this.selectedIds().size === 0) {
+      return 'Selecciona al menos un establecimiento activo para guardar este alcance.';
+    }
+
+    return '';
+  });
 
   constructor() {
     this.repo.status().subscribe((status) => this.status.set(status));
     effect(() => {
-      if (this.masterAdmin() && !this.audience() && !this.loading()) {
-        this.organizations.load();
+      if (this.adminUser() && !this.audiencePermissionChecked() && !this.loading()) {
+        this.audiencePermissionChecked.set(true);
         this.loadAudience();
       }
     });
@@ -57,6 +105,27 @@ export class OperationsPage {
     this.mode.set(mode);
     this.error.set('');
     this.message.set('');
+  }
+
+  updateNameFilter(value: string): void {
+    this.establishmentNameFilter.set(value);
+  }
+
+  updateRedFilter(value: string): void {
+    this.redFilter.set(value);
+    if (value && !this.microredOptions().some((option) => option.id === this.microredFilter())) {
+      this.microredFilter.set('');
+    }
+  }
+
+  updateMicroredFilter(value: string): void {
+    this.microredFilter.set(value);
+  }
+
+  clearFilters(): void {
+    this.establishmentNameFilter.set('');
+    this.redFilter.set('');
+    this.microredFilter.set('');
   }
 
   confirmAll(): void {
@@ -80,7 +149,7 @@ export class OperationsPage {
 
   save(): void {
     if (!this.canSave()) {
-      this.error.set('Selecciona al menos un establecimiento antes de guardar.');
+      this.error.set(this.saveBlockedMessage() || 'Revisa la configuración antes de guardar.');
       return;
     }
 
@@ -116,8 +185,25 @@ export class OperationsPage {
   private loadAudience(): void {
     this.loading.set(true);
     this.repo.reminderAudience().pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (audience) => this.applyAudience(audience),
-      error: (error) => this.error.set(this.audienceErrorMessage(error)),
+      next: (audience) => {
+        this.audienceAllowed.set(true);
+        this.audienceForbidden.set(false);
+        this.organizations.load();
+        this.applyAudience(audience);
+      },
+      error: (error) => {
+        const message = this.audienceErrorMessage(error);
+        if (error instanceof HttpErrorResponse && error.status === 403) {
+          this.audienceForbidden.set(true);
+          this.audienceAllowed.set(false);
+          if (this.masterAdmin()) {
+            this.error.set(message);
+          }
+          return;
+        }
+
+        this.error.set(message);
+      },
     });
   }
 
@@ -138,4 +224,18 @@ export class OperationsPage {
 
     return mapApiError(error).message;
   }
+}
+
+function normalizeSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-PE')
+    .trim();
+}
+
+function uniqueOptions(options: { id: string; name: string }[]): { id: string; name: string }[] {
+  return Array.from(
+    new Map(options.filter((option) => option.id && option.name).map((option) => [option.id, option])).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
 }

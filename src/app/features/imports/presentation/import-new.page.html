@@ -33,6 +33,9 @@
         <button class="button button--primary" type="button" (click)="analyze()" [disabled]="!canAnalyze()">Analizar archivo</button>
         <button class="button button--primary" type="button" (click)="confirmOpen.set(true)" [disabled]="!canApply()">Aplicar importación</button>
       </div>
+      @if (analyzeBlockedMessage() || applyBlockedMessage()) {
+        <p class="validation-note">{{ analyzeBlockedMessage() || applyBlockedMessage() }}</p>
+      }
     </section>
 
     @if (preview(); as p) {
