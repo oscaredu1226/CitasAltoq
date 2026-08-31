@@ -21,96 +21,80 @@
           <small>Última actualización: {{ updatedAt() }}</small>
         </div>
 
-        <div class="mode-switch" role="group" aria-label="Alcance de recordatorios">
-          <button type="button" [class.is-active]="mode() === 'SELECTED'" (click)="selectMode('SELECTED')">
-            Establecimientos seleccionados
+        <div class="selection-summary">
+          <div>
+            <strong>{{ selectedIds().size }}</strong>
+            <span>{{ selectedIds().size === 1 ? 'establecimiento habilitado' : 'establecimientos habilitados' }}</span>
+          </div>
+          @if (hasAudienceChanges()) {
+            <span class="pending-pill">Cambios sin guardar</span>
+          }
+        </div>
+        <div class="selection-tools" aria-label="Acciones masivas de establecimientos">
+          <button class="button" type="button" [disabled]="!canSelectFiltered()" (click)="selectFilteredEstablishments()">
+            <svg lucideCircleCheck size="16" aria-hidden="true"></svg>
+            Seleccionar visibles
           </button>
-          <button type="button" [class.is-active]="mode() === 'ALL'" (click)="selectMode('ALL')">
-            Todos los establecimientos
+          <button class="button" type="button" [disabled]="!canDeselectAll()" (click)="deselectAllEstablishments()">
+            <svg lucideCircleX size="16" aria-hidden="true"></svg>
+            Deseleccionar todos
           </button>
         </div>
 
-        @if (mode() === 'SELECTED') {
-          <div class="selection-summary">
-            <div>
-              <strong>{{ selectedIds().size }}</strong>
-              <span>{{ selectedIds().size === 1 ? 'establecimiento habilitado' : 'establecimientos habilitados' }}</span>
-            </div>
-            @if (hasAudienceChanges()) {
-              <span class="pending-pill">Cambios sin guardar</span>
-            }
-          </div>
-          <div class="selection-tools" aria-label="Acciones masivas de establecimientos">
-            <button class="button" type="button" [disabled]="!canSelectFiltered()" (click)="selectFilteredEstablishments()">
-              <svg lucideCircleCheck size="16" aria-hidden="true"></svg>
-              Seleccionar visibles
-            </button>
-            <button class="button" type="button" [disabled]="!canDeselectAll()" (click)="deselectAllEstablishments()">
-              <svg lucideCircleX size="16" aria-hidden="true"></svg>
-              Deseleccionar todos
-            </button>
-          </div>
-
-          @if (organizations.loading() || loading()) {
-            <div class="audience-loading"><span class="spinner"></span> Cargando establecimientos...</div>
-          } @else if (organizations.error()) {
-            <app-alert title="Catálogo de establecimientos" [message]="organizations.error()" tone="red" />
-          } @else {
-            <div class="audience-filters" aria-label="Filtros de establecimientos">
-              <label>
-                Nombre
-                <input
-                  type="search"
-                  placeholder="Buscar establecimiento..."
-                  [value]="establishmentNameFilter()"
-                  (input)="updateNameFilter($any($event.target).value)"
-                />
-              </label>
-              <label>
-                Red
-                <select [value]="redFilter()" (change)="updateRedFilter($any($event.target).value)">
-                  <option value="">Todas las redes</option>
-                  @for (red of redOptions(); track red.id) {
-                    <option [value]="red.id">{{ red.name }}</option>
-                  }
-                </select>
-              </label>
-              <label>
-                Microred
-                <select [value]="microredFilter()" (change)="updateMicroredFilter($any($event.target).value)">
-                  <option value="">Todas las microredes</option>
-                  @for (microred of microredOptions(); track microred.id) {
-                    <option [value]="microred.id">{{ microred.name }}</option>
-                  }
-                </select>
-              </label>
-              <button class="button" type="button" [disabled]="!filtersApplied()" (click)="clearFilters()">Limpiar filtros</button>
-            </div>
-            <div class="filtered-summary">
-              Mostrando {{ filteredEstablishments().length }} de {{ activeEstablishments().length }} establecimientos activos.
-            </div>
-            <div class="establishment-list">
-              @for (establishment of filteredEstablishments(); track establishment.id) {
-                <label class="establishment-row">
-                  <input
-                    type="checkbox"
-                    [checked]="isSelected(establishment.id)"
-                    (change)="toggleEstablishment(establishment.id, $any($event.target).checked)"
-                  />
-                  <span>
-                    <strong>{{ establishment.name }}</strong>
-                    <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
-                  </span>
-                </label>
-              } @empty {
-                <p class="muted">No hay establecimientos activos para los filtros seleccionados.</p>
-              }
-            </div>
-          }
+        @if (organizations.loading() || loading()) {
+          <div class="audience-loading"><span class="spinner"></span> Cargando establecimientos...</div>
+        } @else if (organizations.error()) {
+          <app-alert title="Catálogo de establecimientos" [message]="organizations.error()" tone="red" />
         } @else {
-          <div class="all-establishments-notice">
-            <strong>Envío masivo habilitado</strong>
-            <span>Los recordatorios CRED podrán generarse y enviarse para cualquier establecimiento importado.</span>
+          <div class="audience-filters" aria-label="Filtros de establecimientos">
+            <label>
+              Nombre
+              <input
+                type="search"
+                placeholder="Buscar establecimiento..."
+                [value]="establishmentNameFilter()"
+                (input)="updateNameFilter($any($event.target).value)"
+              />
+            </label>
+            <label>
+              Red
+              <select [value]="redFilter()" (change)="updateRedFilter($any($event.target).value)">
+                <option value="">Todas las redes</option>
+                @for (red of redOptions(); track red.id) {
+                  <option [value]="red.id">{{ red.name }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Microred
+              <select [value]="microredFilter()" (change)="updateMicroredFilter($any($event.target).value)">
+                <option value="">Todas las microredes</option>
+                @for (microred of microredOptions(); track microred.id) {
+                  <option [value]="microred.id">{{ microred.name }}</option>
+                }
+              </select>
+            </label>
+            <button class="button" type="button" [disabled]="!filtersApplied()" (click)="clearFilters()">Limpiar filtros</button>
+          </div>
+          <div class="filtered-summary">
+            Mostrando {{ filteredEstablishments().length }} de {{ activeEstablishments().length }} establecimientos activos.
+          </div>
+          <div class="establishment-list">
+            @for (establishment of filteredEstablishments(); track establishment.id) {
+              <label class="establishment-row">
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(establishment.id)"
+                  (change)="toggleEstablishment(establishment.id, $any($event.target).checked)"
+                />
+                <span>
+                  <strong>{{ establishment.name }}</strong>
+                  <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
+                </span>
+              </label>
+            } @empty {
+              <p class="muted">No hay establecimientos activos para los filtros seleccionados.</p>
+            }
           </div>
         }
 
@@ -125,59 +109,36 @@
         }
       </section>
 
-      @if (confirmAllOpen()) {
-        <div class="modal-backdrop" role="presentation">
-          <section class="modal" role="dialog" aria-modal="true" aria-label="Confirmar envío masivo">
-            <h2>Habilitar todos los establecimientos</h2>
-            <p class="info-note">Esto permite generar y enviar recordatorios CRED para cualquier establecimiento importado.</p>
-            <div class="modal__actions">
-              <button class="button" type="button" (click)="confirmAllOpen.set(false)">Cancelar</button>
-              <button class="button button--primary" type="button" (click)="confirmAll()">Habilitar todos</button>
-            </div>
-          </section>
-        </div>
-      }
-
       @if (saveConfirmationOpen()) {
         <div class="modal-backdrop" role="presentation">
           <section class="modal audience-confirmation" role="dialog" aria-modal="true" aria-label="Confirmar alcance de recordatorios">
             <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Revisión final</span>
             <h2>Confirmar establecimientos habilitados</h2>
-            @if (mode() === 'ALL') {
+            @if (selectedIds().size) {
               <p class="info-note">
-                Estás por habilitar recordatorios CRED para todos los establecimientos activos e importados en el sistema.
+                Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
               </p>
-              <div class="confirmation-total">
-                <strong>{{ activeEstablishments().length }}</strong>
-                <span>establecimientos activos dentro del catálogo actual.</span>
-              </div>
             } @else {
-              @if (selectedIds().size) {
-                <p class="info-note">
-                  Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
-                </p>
-              } @else {
-                <p class="info-note info-note--warning">
-                  No quedará ningún establecimiento autorizado. Los recordatorios CRED pendientes o nuevos no deberán enviarse hasta que vuelvas a habilitar un centro o actives todos.
-                </p>
-              }
-              <div class="confirmation-total">
-                <strong>{{ selectedIds().size }}</strong>
-                <span>{{ selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados' }}.</span>
+              <p class="info-note info-note--warning">
+                No quedará ningún establecimiento autorizado. Los recordatorios CRED pendientes o nuevos no deberán enviarse hasta que vuelvas a habilitar un centro.
+              </p>
+            }
+            <div class="confirmation-total">
+              <strong>{{ selectedIds().size }}</strong>
+              <span>{{ selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados' }}.</span>
+            </div>
+            @if (selectedIds().size) {
+              <div class="confirmation-list" aria-label="Establecimientos seleccionados">
+                @for (establishment of selectedEstablishments(); track establishment.id) {
+                  <article>
+                    <strong>{{ establishment.name }}</strong>
+                    <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
+                  </article>
+                }
+                @if (selectedWithoutDetails()) {
+                  <p class="muted">{{ selectedWithoutDetails() }} establecimiento(s) seleccionado(s) no están visibles en el catálogo cargado.</p>
+                }
               </div>
-              @if (selectedIds().size) {
-                <div class="confirmation-list" aria-label="Establecimientos seleccionados">
-                  @for (establishment of selectedEstablishments(); track establishment.id) {
-                    <article>
-                      <strong>{{ establishment.name }}</strong>
-                      <small>{{ establishment.microred.name }} · {{ establishment.red.name }}</small>
-                    </article>
-                  }
-                  @if (selectedWithoutDetails()) {
-                    <p class="muted">{{ selectedWithoutDetails() }} establecimiento(s) seleccionado(s) no están visibles en el catálogo cargado.</p>
-                  }
-                </div>
-              }
             }
             <div class="modal__actions">
               <button class="button" type="button" (click)="saveConfirmationOpen.set(false)">Volver a revisar</button>

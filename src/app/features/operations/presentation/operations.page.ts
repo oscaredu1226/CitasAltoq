@@ -108,7 +108,7 @@ export class OperationsPage {
       }
     });
     effect(() => {
-      if (this.audience()?.mode === 'ALL' && !this.hasAudienceChanges()) {
+      if (this.audience()?.mode === 'ALL' && this.activeEstablishments().length > 0 && !this.hasAudienceChanges()) {
         this.applyAllAsSelected();
       }
     });

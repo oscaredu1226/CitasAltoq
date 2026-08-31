@@ -190,16 +190,6 @@ describe('OperationsPage', () => {
     expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [] });
   });
 
-  it('requires visual confirmation before enabling all establishments', () => {
-    configure(true);
-
-    fixture.componentInstance.selectMode('ALL');
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.mode()).toBe('SELECTED');
-    expect(fixture.nativeElement.textContent).toContain('Habilitar todos los establecimientos');
-  });
-
   it('requires final confirmation before saving selected establishments', () => {
     configure(true);
 
@@ -216,18 +206,17 @@ describe('OperationsPage', () => {
     expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'SELECTED', establishmentIds: [1, 2] });
   });
 
-  it('saves ALL mode with an empty establishmentIds payload after double confirmation', () => {
-    configure(true);
+  it('renders an existing ALL configuration as selected active establishments', () => {
+    configure(true, {
+      mode: 'ALL',
+      selectedEstablishments: [],
+      updatedAt: '2026-08-30T23:00:00Z',
+    });
 
-    fixture.componentInstance.selectMode('ALL');
-    fixture.componentInstance.confirmAll();
-    fixture.componentInstance.save();
-
-    expect(repository.updateReminderAudience).not.toHaveBeenCalled();
-
-    fixture.componentInstance.confirmSave();
-
-    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'ALL', establishmentIds: [] });
+    expect(fixture.componentInstance.selectedIds()).toEqual(new Set(['1', '2']));
+    expect(fixture.nativeElement.textContent).toContain('Centro de Salud Mariano Melgar');
+    expect(fixture.nativeElement.textContent).toContain('Puesto de Salud Alto Selva Alegre');
+    expect(fixture.nativeElement.textContent).not.toContain('Todos los establecimientos');
   });
 
   it('shows backend validation and permission errors', () => {
