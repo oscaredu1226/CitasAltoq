@@ -1,20 +1,19 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { LucideEye, LucideX } from '@lucide/angular';
-import { catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import { finalize, map } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
 import { newestFirstPage } from '../../../core/http/newest-page';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 import { addDaysDateOnly, formatDateOnly, formatOffsetDateTime, todayDateOnly } from '../../../shared/utils/date-only';
 import { purposeLabel } from '../../../shared/utils/status-mappers';
 import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
-import { Appointment, AppointmentReminder, AppointmentsRepository } from '../../appointments/infrastructure/appointments.repository';
-import { PatientsRepository, Patient } from '../../patients/infrastructure/patients.repository';
+import { Appointment, AppointmentPatient, AppointmentReminder, AppointmentsRepository } from '../../appointments/infrastructure/appointments.repository';
 
 interface ReminderRow {
   appointment: Appointment;
   reminder: AppointmentReminder | null;
-  patient: Patient | null;
+  patient: AppointmentPatient | null;
 }
 
 @Component({
@@ -25,7 +24,6 @@ interface ReminderRow {
 })
 export class RemindersPage {
   private readonly appointments = inject(AppointmentsRepository);
-  private readonly patients = inject(PatientsRepository);
   private readonly fb = inject(FormBuilder);
 
   readonly todayDate = signal(todayDateOnly());
@@ -73,7 +71,7 @@ export class RemindersPage {
     loading.set(true);
     this.error.set('');
     newestFirstPage(page, 8, (serverPage, size) => this.appointments.list({ scheduledDate, status: 'SCHEDULED', page: serverPage, size })).pipe(
-      switchMap((response) => {
+      map((response) => {
         pageState.set(response);
         return this.reminderRows(response.content);
       }),
@@ -108,21 +106,11 @@ export class RemindersPage {
   }
 
   private reminderRows(appointments: Appointment[]) {
-    if (!appointments.length) {
-      return of([]);
-    }
-
-    return forkJoin(appointments.map((appointment) =>
-      this.appointments.get(appointment.id).pipe(
-        switchMap((detail) => this.patients.lookup(detail.appointment.patientId).pipe(
-          map((patient) => ({ appointment: detail.appointment, reminder: detail.reminder, patient })),
-        )),
-        catchError(() => this.patients.lookup(appointment.patientId).pipe(
-          map((patient) => ({ appointment, reminder: null, patient })),
-          catchError(() => of({ appointment, reminder: null, patient: null })),
-        )),
-      ),
-    ));
+    return appointments.map((appointment) => ({
+      appointment,
+      reminder: appointment.reminder ?? null,
+      patient: appointment.patient ?? null,
+    }));
   }
 
   private applyRowsFilters(): void {

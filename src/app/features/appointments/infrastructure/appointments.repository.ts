@@ -15,6 +15,15 @@ export interface Appointment {
   sourceImportBatchId: string | null;
   createdAt: string;
   updatedAt: string;
+  patient?: AppointmentPatient | null;
+  reminder?: AppointmentReminder | null;
+}
+
+export interface AppointmentPatient {
+  id: string;
+  documentType: string;
+  documentNumber: string;
+  name: string;
 }
 
 export interface AppointmentDetail {

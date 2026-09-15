@@ -1,18 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { map } from 'rxjs';
 import { PageResponse } from '../../../core/http/page-response';
 import { newestFirstPage } from '../../../core/http/newest-page';
 import { formatDateOnly } from '../../../shared/utils/date-only';
 import { AlertComponent, EmptyStateComponent, PageTitleComponent, PaginationComponent, StatusBadgeComponent } from '../../../shared/ui/ui.components';
-import { Appointment, AppointmentsRepository } from '../infrastructure/appointments.repository';
-import { PatientsRepository, Patient } from '../../patients/infrastructure/patients.repository';
+import { Appointment, AppointmentPatient, AppointmentsRepository } from '../infrastructure/appointments.repository';
 import { mapApiError } from '../../../core/http/error-message.mapper';
 
 interface AppointmentRow {
   appointment: Appointment;
-  patient: Patient | null;
+  patient: AppointmentPatient | null;
 }
 
 @Component({
@@ -23,7 +22,6 @@ interface AppointmentRow {
 })
 export class AppointmentsPage {
   private readonly repo = inject(AppointmentsRepository);
-  private readonly patients = inject(PatientsRepository);
   private readonly fb = inject(FormBuilder);
 
   readonly loading = signal(false);
@@ -52,15 +50,9 @@ export class AppointmentsPage {
     this.error.set('');
     const filters = this.form.getRawValue();
     newestFirstPage(page, 8, (serverPage, size) => this.repo.list({ ...filters, page: serverPage, size })).pipe(
-      switchMap((response) => {
+      map((response) => {
         this.page.set(response);
-        const lookups = response.content.map((appointment) =>
-          this.patients.lookup(appointment.patientId).pipe(
-            catchError(() => of(null)),
-            map((patient) => ({ appointment, patient })),
-          ),
-        );
-        return lookups.length ? forkJoin(lookups) : of([]);
+        return response.content.map((appointment) => ({ appointment, patient: appointment.patient ?? null }));
       }),
     ).subscribe({
       next: (rows) => this.rows.set(rows),

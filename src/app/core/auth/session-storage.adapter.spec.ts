@@ -29,4 +29,23 @@ describe('SessionStorageAdapter', () => {
 
     expect(adapter.read()).toBeNull();
   });
+
+  it('restores the cached user with an active session', () => {
+    adapter.write({
+      accessToken: 'token',
+      expiresAt: Date.now() + 1000,
+      remember: true,
+      user: {
+        id: 'user-1',
+        email: 'operator@example.test',
+        displayName: 'Operador',
+        active: true,
+        masterAdmin: false,
+        roles: ['ESTABLISHMENT_OPERATOR'],
+        establishment: null,
+      },
+    });
+
+    expect(adapter.read()?.user?.email).toBe('operator@example.test');
+  });
 });

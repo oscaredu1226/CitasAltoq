@@ -6,7 +6,7 @@ import { SessionStorageAdapter } from './session-storage.adapter';
 export class SessionStore {
   private readonly storage = inject(SessionStorageAdapter);
   private readonly sessionState = signal<StoredSession | null>(this.storage.read());
-  private readonly userState = signal<CurrentUser | null>(null);
+  private readonly userState = signal<CurrentUser | null>(this.sessionState()?.user ?? null);
   private readonly restoringState = signal(false);
 
   readonly session = this.sessionState.asReadonly();
@@ -22,6 +22,12 @@ export class SessionStore {
 
   setUser(user: CurrentUser | null): void {
     this.userState.set(user);
+    const session = this.sessionState();
+    if (session) {
+      const updated = { ...session, user: user ?? undefined };
+      this.storage.write(updated);
+      this.sessionState.set(updated);
+    }
   }
 
   setRestoring(restoring: boolean): void {

@@ -1,12 +1,13 @@
 import { inject, Injectable } from '@angular/core';
-import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { addDaysDateOnly, todayDateOnly } from '../../../shared/utils/date-only';
 import { AppointmentsRepository, Appointment } from '../../appointments/infrastructure/appointments.repository';
-import { Patient, PatientsRepository } from '../../patients/infrastructure/patients.repository';
+import { PatientsRepository } from '../../patients/infrastructure/patients.repository';
+import { AppointmentPatient } from '../../appointments/infrastructure/appointments.repository';
 
 export interface DashboardAppointmentRow {
   appointment: Appointment;
-  patient: Patient | null;
+  patient: AppointmentPatient | null;
 }
 
 export interface DashboardData {
@@ -64,27 +65,18 @@ export class DashboardFacade {
       tomorrowPending: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'PENDING', page: 0, size: 1 })),
       todayAppointments: this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', page: 0, size: 6 }).pipe(
         map((page) => page.content),
-        switchMap((appointments) => this.appointmentRows(appointments)),
+        map((appointments) => this.appointmentRows(appointments)),
         catchError(() => of([])),
       ),
       nextAppointments: this.appointments.list({ ...appointmentFilters, fromDate: tomorrow, status: 'SCHEDULED', page: 0, size: 6 }).pipe(
         map((page) => page.content),
-        switchMap((appointments) => this.appointmentRows(appointments)),
+        map((appointments) => this.appointmentRows(appointments)),
         catchError(() => of([])),
       ),
     });
   }
 
-  private appointmentRows(appointments: Appointment[]): Observable<DashboardAppointmentRow[]> {
-    if (!appointments.length) {
-      return of([]);
-    }
-
-    return forkJoin(appointments.map((appointment) =>
-      this.patients.lookup(appointment.patientId).pipe(
-        map((patient) => ({ appointment, patient })),
-        catchError(() => of({ appointment, patient: null })),
-      ),
-    ));
+  private appointmentRows(appointments: Appointment[]): DashboardAppointmentRow[] {
+    return appointments.map((appointment) => ({ appointment, patient: appointment.patient ?? null }));
   }
 }

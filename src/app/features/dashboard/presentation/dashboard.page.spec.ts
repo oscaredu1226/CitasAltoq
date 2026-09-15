@@ -85,7 +85,7 @@ describe('DashboardPage', () => {
       todayPending: 5,
     })));
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     fixture.detectChanges();
 
     expect(facade.load).toHaveBeenCalledTimes(2);

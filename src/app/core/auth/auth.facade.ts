@@ -50,9 +50,10 @@ export class AuthFacade {
         if (error instanceof HttpErrorResponse && error.status === 401) {
           this.mfa.clear();
           this.session.clear();
+          return of(false);
         }
 
-        return of(false);
+        return of(true);
       }),
       finalize(() => this.session.setRestoring(false)),
     );

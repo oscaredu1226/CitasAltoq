@@ -69,7 +69,7 @@ export class DashboardPage {
     this.organization.load();
     this.load();
     merge(
-      timer(10_000, 10_000).pipe(filter(() => document.visibilityState !== 'hidden')),
+      timer(60_000, 60_000).pipe(filter(() => document.visibilityState !== 'hidden')),
       fromEvent(window, 'focus'),
       fromEvent(document, 'visibilitychange').pipe(filter(() => document.visibilityState === 'visible')),
     ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refresh());

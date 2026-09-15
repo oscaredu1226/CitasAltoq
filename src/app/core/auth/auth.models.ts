@@ -48,6 +48,7 @@ export interface StoredSession {
   accessToken: string;
   expiresAt: number;
   remember: boolean;
+  user?: CurrentUser;
 }
 
 export function roleLabel(role: UserRole | undefined): string {
