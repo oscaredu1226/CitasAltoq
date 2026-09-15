@@ -5,13 +5,6 @@
       <label>Buscar por documento<input formControlName="documentNumber" placeholder="Ej. 76543210" /></label>
       <label>Buscar por nombre<input formControlName="name" placeholder="Ej. Lucía Quispe" /></label>
       <label>Historia clínica<input formControlName="clinicalHistory" placeholder="Ej. HC-000123" /></label>
-      <label>Estado
-        <select formControlName="active">
-          <option value="">Todos</option>
-          <option value="true">En padrón</option>
-          <option value="false">Fuera del padrón</option>
-        </select>
-      </label>
       @if (admin()) {
         <app-organization-dropdown
           label="Red"
@@ -49,7 +42,7 @@
       <div class="panel__header">
         <h2>Listado de pacientes</h2>
         @if (page(); as p) {
-          <span>Mostrando {{ p.content.length }} de {{ p.totalElements }} pacientes</span>
+          <span>Mostrando {{ filtered().length }} de {{ p.totalElements }} pacientes activos</span>
         }
       </div>
       @if (loading()) {

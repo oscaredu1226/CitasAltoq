@@ -48,62 +48,40 @@
   color: var(--color-muted);
 }
 
-.scope-tree {
+.scope-dropdowns {
   display: grid;
   gap: 14px;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 
-.scope-red {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 14px;
-}
-
-.scope-red h3,
-.scope-microred h4 {
+.scope-summary,
+.scope-compact {
   align-items: center;
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  margin: 0;
-}
-
-.scope-red h3 span,
-.scope-microred h4 span,
-.scope-establishment span {
-  color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.scope-microred {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-  padding-left: 14px;
-}
-
-.scope-establishments {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.scope-establishment {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #f8fbff;
+  border: 1px solid #bfdbfe;
   border-radius: var(--radius);
-  cursor: pointer;
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-  text-align: left;
+  color: #1e40af;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
 }
 
-.scope-establishment.is-selected {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.scope-summary {
+  margin-top: 14px;
+}
+
+.scope-compact {
+  margin-bottom: 18px;
+}
+
+.scope-summary span,
+.scope-compact span {
+  overflow-wrap: anywhere;
+}
+
+.scope-compact small {
+  color: var(--color-muted);
 }
 
 .danger-checkbox {
@@ -264,13 +242,7 @@
     text-align: left;
   }
 
-  .scope-red h3,
-  .scope-microred h4 {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .scope-microred {
-    padding-left: 0;
+  .scope-dropdowns {
+    grid-template-columns: 1fr;
   }
 }

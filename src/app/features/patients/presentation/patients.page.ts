@@ -50,7 +50,7 @@ export class PatientsPage {
     documentNumber: [''],
     name: [''],
     clinicalHistory: [''],
-    active: [''],
+    active: ['true'],
     redId: [''],
     microredId: [''],
     establishmentId: [''],
@@ -58,7 +58,7 @@ export class PatientsPage {
   readonly filtered = computed(() => {
     const page = this.page();
     const name = this.form.controls.name.value.trim().toLocaleLowerCase('es-PE');
-    const content = page?.content ?? [];
+    const content = (page?.content ?? []).filter((patient) => patient.active !== false);
     return name ? content.filter((patient) => patient.name.toLocaleLowerCase('es-PE').includes(name)) : content;
   });
 
@@ -94,7 +94,7 @@ export class PatientsPage {
       red: this.admin() ? establishment?.red?.name ?? red?.name : undefined,
       microred: this.admin() ? establishment?.microred?.name ?? microred?.name : undefined,
       establishment: this.admin() ? establishment?.name : undefined,
-      active: raw.active === '' ? null : raw.active === 'true',
+      active: true,
     };
     newestFirstPage(page, 10, (serverPage, size) => this.repo.list({ ...filters, page: serverPage, size })).subscribe({
       next: (response) => this.page.set(response),
@@ -109,7 +109,7 @@ export class PatientsPage {
   }
 
   clear(): void {
-    this.form.reset({ documentNumber: '', name: '', clinicalHistory: '', active: '', redId: '', microredId: '', establishmentId: '' });
+    this.form.reset({ documentNumber: '', name: '', clinicalHistory: '', active: 'true', redId: '', microredId: '', establishmentId: '' });
     this.load(0);
   }
 

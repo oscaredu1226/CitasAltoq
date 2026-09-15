@@ -42,48 +42,75 @@
     </section>
 
     @if (scopes(); as s) {
-      <section class="panel scope-panel">
-        <div class="panel__header">
-          <div>
-            <h2>Alcance de importación</h2>
-            <p>{{ number(s.totalDataRows) }} filas detectadas en el archivo.</p>
+      @if (!preview()) {
+        <section class="panel scope-panel">
+          <div class="panel__header">
+            <div>
+              <h2>Alcance de importación</h2>
+              <p>{{ number(s.totalDataRows) }} filas detectadas en el archivo.</p>
+            </div>
+            <strong>{{ selectedScopeText() }}</strong>
           </div>
-          <strong>{{ selectedScopeText() }}</strong>
-        </div>
 
-        <div class="scope-mode">
-          <button class="button" type="button" [class.button--primary]="scopeMode() === 'ALL'" (click)="selectAllScope()">
-            Todos los establecimientos
-          </button>
-          <span>o selecciona un establecimiento específico en la jerarquía.</span>
-        </div>
+          <div class="scope-mode">
+            <button class="button" type="button" [class.button--primary]="scopeMode() === 'ALL'" (click)="selectAllScope()">
+              Todos los establecimientos
+            </button>
+            <button class="button" type="button" [class.button--primary]="scopeMode() === 'ESTABLISHMENT'" (click)="selectSpecificScope()">
+              Un establecimiento específico
+            </button>
+          </div>
 
-        <div class="scope-tree" aria-label="Establecimientos detectados">
-          @for (red of s.reds; track red.name) {
-            <section class="scope-red">
-              <h3>{{ red.name }} <span>{{ number(red.rowCount) }} filas</span></h3>
-              @for (microred of red.microreds ?? []; track microred.name) {
-                <article class="scope-microred">
-                  <h4>{{ microred.name }} <span>{{ number(microred.rowCount) }} filas</span></h4>
-                  <div class="scope-establishments">
-                    @for (establishment of microred.establishments ?? []; track establishment.name) {
-                      <button
-                        class="scope-establishment"
-                        type="button"
-                        [class.is-selected]="selectedScope()?.establishment === establishment.name && selectedScope()?.microred === microred.name && selectedScope()?.red === red.name"
-                        (click)="selectEstablishmentScope(red.name, microred.name, establishment)"
-                      >
-                        <strong>{{ establishment.name }}</strong>
-                        <span>{{ number(establishment.rowCount) }} filas</span>
-                      </button>
-                    }
-                  </div>
-                </article>
-              }
-            </section>
+          @if (scopeMode() === 'ALL') {
+            <div class="scope-summary">
+              <strong>{{ number(s.totalDataRows) }} filas</strong>
+              <span>Se importará todo el archivo sin filtrar por Red, Microred ni Establecimiento.</span>
+            </div>
+          } @else {
+            <div class="scope-dropdowns">
+              <label>
+                Red
+                <select [value]="selectedRedName()" (change)="updateScopeRed($any($event.target).value)">
+                  <option value="">Seleccionar Red</option>
+                  @for (red of redScopeOptions(); track red.name) {
+                    <option [value]="red.name">{{ red.name }} - {{ number(red.rowCount) }} filas</option>
+                  }
+                </select>
+              </label>
+              <label>
+                Microred
+                <select [value]="selectedMicroredName()" [disabled]="!selectedRedName()" (change)="updateScopeMicrored($any($event.target).value)">
+                  <option value="">Seleccionar Microred</option>
+                  @for (microred of microredScopeOptions(); track microred.name) {
+                    <option [value]="microred.name">{{ microred.name }} - {{ number(microred.rowCount) }} filas</option>
+                  }
+                </select>
+              </label>
+              <label>
+                Establecimiento
+                <select [value]="selectedEstablishmentName()" [disabled]="!selectedMicroredName()" (change)="updateScopeEstablishment($any($event.target).value)">
+                  <option value="">Seleccionar establecimiento</option>
+                  @for (establishment of establishmentScopeOptions(); track establishment.name) {
+                    <option [value]="establishment.name">{{ establishment.name }} - {{ number(establishment.rowCount) }} filas</option>
+                  }
+                </select>
+              </label>
+            </div>
+            @if (selectedScope(); as selected) {
+              <div class="scope-summary">
+                <strong>{{ number(selected.rowCount) }} filas</strong>
+                <span>{{ selected.establishment }} · {{ selected.microred }} · {{ selected.red }}</span>
+              </div>
+            }
           }
-        </div>
-      </section>
+        </section>
+      } @else {
+        <section class="scope-compact" aria-label="Alcance seleccionado">
+          <strong>Alcance:</strong>
+          <span>{{ selectedScopeText() }}</span>
+          <small>{{ number(selectedRows()) }} filas</small>
+        </section>
+      }
     }
 
     @if (preview(); as p) {

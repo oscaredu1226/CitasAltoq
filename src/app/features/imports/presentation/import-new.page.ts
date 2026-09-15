@@ -15,7 +15,6 @@ import { AlertComponent, PageTitleComponent, StatCardComponent, StatusBadgeCompo
 import {
   ImportBatch,
   ImportPreview,
-  ImportScopeOption,
   ImportScopeSelection,
   ImportScopesResponse,
   ImportsRepository,
@@ -70,6 +69,9 @@ export class ImportNewPage {
   readonly file = signal<File | null>(null);
   readonly scopes = signal<ImportScopesResponse | null>(null);
   readonly scopeMode = signal<ScopeMode>('ALL');
+  readonly selectedRedName = signal('');
+  readonly selectedMicroredName = signal('');
+  readonly selectedEstablishmentName = signal('');
   readonly selectedScope = signal<EstablishmentScopeChoice | null>(null);
   readonly authoritativeRoster = signal(false);
   readonly preview = signal<ImportPreview | null>(null);
@@ -122,6 +124,15 @@ export class ImportNewPage {
 
     return this.selectedScope()?.rowCount ?? 0;
   });
+  readonly redScopeOptions = computed(() => this.scopes()?.reds ?? []);
+  readonly microredScopeOptions = computed(() => {
+    const red = this.redScopeOptions().find((item) => item.name === this.selectedRedName());
+    return red?.microreds ?? [];
+  });
+  readonly establishmentScopeOptions = computed(() => {
+    const microred = this.microredScopeOptions().find((item) => item.name === this.selectedMicroredName());
+    return microred?.establishments ?? [];
+  });
   readonly progressPercent = computed(() => {
     const batch = this.batch();
     if (!batch) {
@@ -159,6 +170,14 @@ export class ImportNewPage {
     }
 
     if (this.scopeMode() === 'ESTABLISHMENT' && !this.selectedScope()) {
+      if (!this.selectedRedName()) {
+        return 'Selecciona la Red del establecimiento que se importará.';
+      }
+
+      if (!this.selectedMicroredName()) {
+        return 'Selecciona la Microred del establecimiento que se importará.';
+      }
+
       return 'Selecciona el establecimiento específico que se importará.';
     }
 
@@ -255,7 +274,7 @@ export class ImportNewPage {
       next: (scopes) => {
         this.scopes.set(scopes);
         this.scopeMode.set('ALL');
-        this.selectedScope.set(null);
+        this.clearScopeSelection();
         this.preview.set(null);
         this.state.set('scope-ready');
         this.message.set('Establecimientos detectados. Elige el alcance antes de ejecutar la vista previa.');
@@ -266,14 +285,49 @@ export class ImportNewPage {
 
   selectAllScope(): void {
     this.scopeMode.set('ALL');
-    this.selectedScope.set(null);
+    this.clearScopeSelection();
     this.preview.set(null);
     this.message.set('Se importará todo el archivo.');
   }
 
-  selectEstablishmentScope(red: string, microred: string, establishment: ImportScopeOption): void {
+  selectSpecificScope(): void {
     this.scopeMode.set('ESTABLISHMENT');
-    this.selectedScope.set({ red, microred, establishment: establishment.name, rowCount: establishment.rowCount });
+    this.preview.set(null);
+    this.message.set('Selecciona Red, Microred y Establecimiento para continuar.');
+  }
+
+  updateScopeRed(redName: string): void {
+    this.scopeMode.set('ESTABLISHMENT');
+    this.selectedRedName.set(redName);
+    this.selectedMicroredName.set('');
+    this.selectedEstablishmentName.set('');
+    this.selectedScope.set(null);
+    this.preview.set(null);
+  }
+
+  updateScopeMicrored(microredName: string): void {
+    this.scopeMode.set('ESTABLISHMENT');
+    this.selectedMicroredName.set(microredName);
+    this.selectedEstablishmentName.set('');
+    this.selectedScope.set(null);
+    this.preview.set(null);
+  }
+
+  updateScopeEstablishment(establishmentName: string): void {
+    this.scopeMode.set('ESTABLISHMENT');
+    this.selectedEstablishmentName.set(establishmentName);
+    const establishment = this.establishmentScopeOptions().find((item) => item.name === establishmentName);
+    if (!establishment || !this.selectedRedName() || !this.selectedMicroredName()) {
+      this.selectedScope.set(null);
+      return;
+    }
+
+    this.selectedScope.set({
+      red: this.selectedRedName(),
+      microred: this.selectedMicroredName(),
+      establishment: establishment.name,
+      rowCount: establishment.rowCount,
+    });
     this.preview.set(null);
     this.message.set('Alcance seleccionado. Ejecuta la vista previa para revisar los cambios.');
   }
@@ -372,7 +426,7 @@ export class ImportNewPage {
   private clearImportState(): void {
     this.scopes.set(null);
     this.scopeMode.set('ALL');
-    this.selectedScope.set(null);
+    this.clearScopeSelection();
     this.authoritativeRoster.set(false);
     this.preview.set(null);
     this.batch.set(null);
@@ -389,6 +443,13 @@ export class ImportNewPage {
     return scope
       ? { red: scope.red, microred: scope.microred, establishment: scope.establishment }
       : {};
+  }
+
+  private clearScopeSelection(): void {
+    this.selectedRedName.set('');
+    this.selectedMicroredName.set('');
+    this.selectedEstablishmentName.set('');
+    this.selectedScope.set(null);
   }
 
   private resumeBatch(batchId: string): void {
