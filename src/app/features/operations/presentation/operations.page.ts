@@ -289,16 +289,16 @@ export class OperationsPage {
       });
   }
 
-  sendReportTest(subscription: DailyReportSubscription): void {
+  sendReportNow(subscription: DailyReportSubscription): void {
     if (!this.ensureMfa() || this.reportSaving()) {
       return;
     }
     this.reportSaving.set(true);
     this.error.set('');
-    this.repo.sendDailyReportTest(subscription.id)
+    this.repo.sendDailyReportNow(subscription.id)
       .pipe(finalize(() => this.reportSaving.set(false)))
       .subscribe({
-        next: () => this.message.set('Reporte de prueba enviado al correo configurado.'),
+        next: () => this.message.set('Reporte de hoy generado y enviado. No se volverá a enviar esta noche.'),
         error: (error) => this.error.set(mapApiError(error).message),
       });
   }

@@ -78,7 +78,7 @@ describe('OperationsPage', () => {
     createDailyReportSubscription: ReturnType<typeof vi.fn>;
     updateDailyReportSubscription: ReturnType<typeof vi.fn>;
     deleteDailyReportSubscription: ReturnType<typeof vi.fn>;
-    sendDailyReportTest: ReturnType<typeof vi.fn>;
+    sendDailyReportNow: ReturnType<typeof vi.fn>;
   };
   let fixture: ComponentFixture<OperationsPage>;
 
@@ -97,7 +97,7 @@ describe('OperationsPage', () => {
       createDailyReportSubscription: vi.fn(),
       updateDailyReportSubscription: vi.fn(),
       deleteDailyReportSubscription: vi.fn(),
-      sendDailyReportTest: vi.fn(),
+      sendDailyReportNow: vi.fn(() => of(undefined)),
     };
 
     TestBed.configureTestingModule({
@@ -260,5 +260,28 @@ describe('OperationsPage', () => {
     fixture.componentInstance.confirmSave();
 
     expect(fixture.componentInstance.error()).toContain('no tiene permisos');
+  });
+
+  it('sends today report immediately and explains that the nightly send will not repeat it', () => {
+    configure(true);
+    const subscription = {
+      id: 'report-1',
+      userId: 'user-1',
+      establishmentId: 1,
+      recipientEmail: 'reportes@edifmisti.pe',
+      active: true,
+      userDisplayName: 'Operador',
+      userEmail: 'operador@edifmisti.pe',
+      establishmentName: 'Centro de Salud Mariano Melgar',
+      microredName: 'Microred Mariano Melgar',
+      redName: 'Red Arequipa Caylloma',
+      createdAt: '2026-09-15T12:00:00Z',
+      updatedAt: '2026-09-15T12:00:00Z',
+    };
+
+    fixture.componentInstance.sendReportNow(subscription);
+
+    expect(repository.sendDailyReportNow).toHaveBeenCalledWith('report-1');
+    expect(fixture.componentInstance.message()).toContain('No se volverá a enviar esta noche');
   });
 });

@@ -278,8 +278,13 @@
 }
 
 .report-actions {
+  align-items: center;
   display: flex;
   gap: 6px;
+}
+
+.report-send-button {
+  white-space: nowrap;
 }
 
 .icon-button--danger,

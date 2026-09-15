@@ -104,7 +104,7 @@ export class OperationsRepository {
     return this.http.delete<void>(apiUrl(this.config, `/api/admin/daily-reports/subscriptions/${id}`));
   }
 
-  sendDailyReportTest(id: string): Observable<void> {
-    return this.http.post<void>(apiUrl(this.config, `/api/admin/daily-reports/subscriptions/${id}/test`), {});
+  sendDailyReportNow(id: string): Observable<void> {
+    return this.http.post<void>(apiUrl(this.config, `/api/admin/daily-reports/subscriptions/${id}/send-now`), {});
   }
 }

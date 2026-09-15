@@ -50,4 +50,18 @@ describe('OperationsRepository', () => {
     update.flush({ mode: 'ALL', selectedEstablishments: [], updatedAt: '2026-08-30T12:01:00Z' });
     http.verify();
   });
+
+  it('requests an immediate daily report through the explicit endpoint', () => {
+    const repository = TestBed.inject(OperationsRepository);
+    const http = TestBed.inject(HttpTestingController);
+
+    repository.sendDailyReportNow('report-1').subscribe();
+    const request = http.expectOne(
+      'https://api.example.test/api/admin/daily-reports/subscriptions/report-1/send-now',
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush(null);
+    http.verify();
+  });
 });

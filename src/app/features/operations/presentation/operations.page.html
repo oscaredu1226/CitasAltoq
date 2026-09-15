@@ -163,7 +163,7 @@
           <div>
             <span class="audience-kicker"><svg lucideMail size="17" aria-hidden="true"></svg> Reporte diario</span>
             <h2>Destinatarios por establecimiento</h2>
-            <p>A las 8:00 p. m. (hora de Perú) se enviará un PDF con el resumen y detalle de las citas del día.</p>
+            <p>El PDF se envía automáticamente a las 8:00 p. m. (hora de Perú). También puedes generarlo y enviarlo antes; en ese caso no se repite por la noche.</p>
           </div>
         </div>
 
@@ -224,8 +224,14 @@
                   <button class="icon-button" type="button" title="Guardar destinatario" [disabled]="reportSaving()" (click)="saveReportSubscription(subscription)">
                     <svg lucideSave size="17" aria-hidden="true"></svg>
                   </button>
-                  <button class="icon-button" type="button" title="Enviar reporte de prueba" [disabled]="reportSaving()" (click)="sendReportTest(subscription)">
+                  <button
+                    class="button report-send-button"
+                    type="button"
+                    [disabled]="reportSaving() || !subscription.active"
+                    (click)="sendReportNow(subscription)"
+                  >
                     <svg lucideSend size="17" aria-hidden="true"></svg>
+                    {{ reportSaving() ? 'Procesando...' : 'Generar y enviar ahora' }}
                   </button>
                   <button
                     class="icon-button icon-button--danger"
