@@ -92,4 +92,28 @@ describe('DashboardPage', () => {
     expect(fixture.componentInstance.data()?.todayConfirmed).toBe(1);
     expect(fixture.componentInstance.data()?.todayPending).toBe(5);
   });
+
+  it('renders confirmation charts for today and tomorrow', () => {
+    configure();
+    facade.load.mockReturnValue(of(dashboardData({
+      todayScheduled: 10,
+      todayConfirmed: 6,
+      todayCannotAttend: 1,
+      todayPending: 3,
+      tomorrowScheduled: 5,
+      tomorrowConfirmed: 2,
+      tomorrowCannotAttend: 1,
+      tomorrowPending: 2,
+    })));
+
+    fixture.componentInstance.load();
+    fixture.detectChanges();
+
+    const charts = fixture.nativeElement.querySelectorAll('.confirmation-chart');
+    expect(charts).toHaveLength(2);
+    expect(charts[0].textContent).toContain('Confirmaciones de hoy');
+    expect(charts[0].textContent).toContain('6 · 60%');
+    expect(charts[1].textContent).toContain('Confirmaciones de mañana');
+    expect(charts[1].textContent).toContain('2 · 40%');
+  });
 });

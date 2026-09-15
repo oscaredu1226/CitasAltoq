@@ -130,6 +130,21 @@ export class DashboardPage {
     return value === null ? '-' : new Intl.NumberFormat('es-PE').format(value);
   }
 
+  confirmationRows(confirmed: number | null, cannotAttend: number | null, pending: number | null): ConfirmationChartRow[] {
+    return [
+      { label: 'Sí asistirá', value: confirmed ?? 0, tone: 'confirmed' },
+      { label: 'No podrá asistir', value: cannotAttend ?? 0, tone: 'cannot-attend' },
+      { label: 'No respondió', value: pending ?? 0, tone: 'pending' },
+    ];
+  }
+
+  percentage(value: number, total: number | null): number {
+    if (!total || total <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((value / total) * 100));
+  }
+
   formatDate = formatDateOnly;
 
   dateLabel(value: string): string {
@@ -163,4 +178,10 @@ export class DashboardPage {
       establishment: establishment?.name,
     };
   }
+}
+
+interface ConfirmationChartRow {
+  label: string;
+  value: number;
+  tone: 'confirmed' | 'cannot-attend' | 'pending';
 }
