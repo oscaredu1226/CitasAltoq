@@ -10,11 +10,14 @@ import {
   LucideLayoutDashboard,
   LucideMenu,
   LucideSettings,
+  LucideShieldAlert,
   LucideUserCog,
   LucideUsersRound,
 } from '@lucide/angular';
 import { AuthFacade } from '../../core/auth/auth.facade';
-import { isAdmin, primaryEstablishment, roleLabel, UserRole } from '../../core/auth/auth.models';
+import { isAdmin, isMasterAdmin, primaryEstablishment, roleLabel, UserRole } from '../../core/auth/auth.models';
+import { MfaRepository } from '../../core/mfa/mfa.repository';
+import { MfaStore } from '../../core/mfa/mfa.store';
 import { LogoComponent } from '../../shared/ui/ui.components';
 
 interface NavItem {
@@ -22,6 +25,7 @@ interface NavItem {
   path: string;
   icon: LucideIcon;
   roles: UserRole[];
+  requiresMasterMfa?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -33,6 +37,7 @@ const navItems: NavItem[] = [
   { label: 'Contactos', path: '/contactos', icon: LucideContactRound, roles: ['ADMIN'] },
   { label: 'Usuarios', path: '/usuarios', icon: LucideUserCog, roles: ['ADMIN'] },
   { label: 'Configuración', path: '/configuracion', icon: LucideSettings, roles: ['ADMIN'] },
+  { label: 'Seguridad', path: '/seguridad', icon: LucideShieldAlert, roles: ['ADMIN'], requiresMasterMfa: true },
 ];
 
 @Component({
@@ -44,12 +49,15 @@ const navItems: NavItem[] = [
 })
 export class ShellComponent {
   readonly auth = inject(AuthFacade);
+  private readonly mfaRepository = inject(MfaRepository);
+  readonly mfa = inject(MfaStore);
   readonly sidebarOpen = signal(false);
   readonly sidebarCollapsed = signal(false);
   readonly user = this.auth.session.user;
   readonly visibleNav = computed(() => {
     const user = this.user();
-    return navItems.filter((item) => item.roles.some((role) => user?.roles.includes(role)));
+    return navItems.filter((item) => item.roles.some((role) => user?.roles.includes(role))
+      && (!item.requiresMasterMfa || (isMasterAdmin(user) && this.mfa.enrolled())));
   });
   readonly roleText = computed(() => roleLabel(this.user()?.roles[0]));
   readonly establishmentText = computed(() => primaryEstablishment(this.user())?.name ?? '');
@@ -64,6 +72,15 @@ export class ShellComponent {
       .map((part) => part[0]?.toUpperCase() ?? '')
       .join('');
   });
+
+  constructor() {
+    if (isMasterAdmin(this.user())) {
+      this.mfaRepository.status().subscribe({
+        next: (status) => this.mfa.setStatus(status),
+        error: () => this.mfa.clear(),
+      });
+    }
+  }
 
   toggleSidebar(): void {
     if (globalThis.matchMedia?.('(max-width: 820px)').matches) {

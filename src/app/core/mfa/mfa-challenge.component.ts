@@ -101,6 +101,7 @@ export class MfaChallengeComponent {
     this.error.set('');
     this.repo.confirm(this.verifyForm.getRawValue().code).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (response) => {
+        this.store.markEnrolled();
         this.store.setElevation(response.elevation);
         this.recoveryCodes.set(response.recoveryCodes);
         this.setupData.set(null);
@@ -169,6 +170,7 @@ export class MfaChallengeComponent {
 
   private applyStatus(status: MfaStatus): void {
     this.status.set(status);
+    this.store.setStatus(status);
 
     if (!status.available) {
       this.error.set('La verificación MFA no está disponible por configuración del servidor.');

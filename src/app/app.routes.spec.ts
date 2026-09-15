@@ -3,7 +3,7 @@ import { routes } from './app.routes';
 describe('app routes', () => {
   it('protects administrative routes with role guards', () => {
     const shellRoute = routes.find((route) => route.path === '');
-    const protectedPaths = ['importaciones', 'importaciones/nueva', 'importaciones/:id', 'contactos', 'usuarios', 'configuracion'];
+    const protectedPaths = ['importaciones', 'importaciones/nueva', 'importaciones/:id', 'contactos', 'usuarios', 'configuracion', 'seguridad'];
 
     for (const path of protectedPaths) {
       const route = shellRoute?.children?.find((child) => child.path === path);

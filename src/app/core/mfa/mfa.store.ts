@@ -1,14 +1,16 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { MfaElevation } from './mfa.models';
+import { MfaElevation, MfaStatus } from './mfa.models';
 
 @Injectable({ providedIn: 'root' })
 export class MfaStore {
   private readonly tokenState = signal<string | null>(null);
   private readonly expiresAtState = signal<string | null>(null);
+  private readonly enrolledState = signal(false);
   private expirationTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly token = this.tokenState.asReadonly();
   readonly expiresAt = this.expiresAtState.asReadonly();
+  readonly enrolled = this.enrolledState.asReadonly();
   readonly elevated = computed(() => this.hasFreshElevation());
 
   setElevation(elevation: MfaElevation): void {
@@ -17,10 +19,23 @@ export class MfaStore {
     this.scheduleExpiration(elevation.expiresAt);
   }
 
-  clear(): void {
+  setStatus(status: MfaStatus): void {
+    this.enrolledState.set(status.enrolled);
+  }
+
+  markEnrolled(): void {
+    this.enrolledState.set(true);
+  }
+
+  clearElevation(): void {
     this.clearExpirationTimer();
     this.tokenState.set(null);
     this.expiresAtState.set(null);
+  }
+
+  clear(): void {
+    this.clearElevation();
+    this.enrolledState.set(false);
   }
 
   hasFreshElevation(): boolean {
@@ -33,11 +48,11 @@ export class MfaStore {
     this.clearExpirationTimer();
     const delay = new Date(expiresAt).getTime() - Date.now();
     if (!Number.isFinite(delay) || delay <= 0) {
-      this.clear();
+      this.clearElevation();
       return;
     }
 
-    this.expirationTimer = setTimeout(() => this.clear(), delay);
+    this.expirationTimer = setTimeout(() => this.clearElevation(), delay);
   }
 
   private clearExpirationTimer(): void {

@@ -13,6 +13,7 @@ describe('MfaStore', () => {
         mfaToken: 'mfa-token',
         expiresAt: new Date(Date.now() + 1_000).toISOString(),
       });
+      store.markEnrolled();
 
       expect(store.token()).toBe('mfa-token');
       expect(store.elevated()).toBe(true);
@@ -21,6 +22,7 @@ describe('MfaStore', () => {
 
       expect(store.token()).toBeNull();
       expect(store.elevated()).toBe(false);
+      expect(store.enrolled()).toBe(true);
     } finally {
       vi.useRealTimers();
     }

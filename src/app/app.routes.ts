@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { roleGuard } from './core/auth/role.guard';
+import { masterAdminGuard } from './core/auth/master-admin.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 
 export const routes: Routes = [
@@ -80,6 +81,12 @@ export const routes: Routes = [
         title: 'Configuración',
         canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () => import('./features/operations/presentation/operations.page').then((m) => m.OperationsPage),
+      },
+      {
+        path: 'seguridad',
+        title: 'Seguridad',
+        canActivate: [roleGuard(['ADMIN']), masterAdminGuard],
+        loadComponent: () => import('./features/security/presentation/security.page').then((m) => m.SecurityPage),
       },
       {
         path: '403',

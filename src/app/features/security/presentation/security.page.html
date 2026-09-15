@@ -1,0 +1,268 @@
+<app-page-title title="Seguridad" subtitle="Auditoría de accesos, alertas y bloqueos temporales." />
+
+<app-alert
+  title="Seguridad"
+  [message]="error() || message()"
+  [requestId]="requestId()"
+  [tone]="error() ? 'red' : 'green'"
+/>
+
+@if (overview(); as summary) {
+  <div class="security-toolbar">
+    <label>
+      Periodo
+      <select [value]="hours()" (change)="changeHours($any($event.target).value)">
+        <option value="24">Últimas 24 horas</option>
+        <option value="168">Últimos 7 días</option>
+        <option value="720">Últimos 30 días</option>
+      </select>
+    </label>
+    <button class="button" type="button" [disabled]="loading()" (click)="refresh()">
+      <svg lucideRefreshCw size="17" aria-hidden="true"></svg>
+      {{ loading() ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+  </div>
+
+  <section class="metrics-grid" aria-label="Resumen de seguridad">
+    <article class="metric">
+      <span>Eventos registrados</span>
+      <strong>{{ summary.totalEvents }}</strong>
+    </article>
+    <article class="metric metric--warning">
+      <span>Inicios fallidos</span>
+      <strong>{{ summary.failedLogins }}</strong>
+    </article>
+    <article class="metric metric--danger">
+      <span>Accesos denegados</span>
+      <strong>{{ summary.accessDenied }}</strong>
+    </article>
+    <article class="metric">
+      <span>Orígenes con riesgo</span>
+      <strong>{{ summary.distinctRiskIps }}</strong>
+    </article>
+    <article class="metric metric--danger">
+      <span>Bloqueos activos</span>
+      <strong>{{ summary.activeIpBlocks }}</strong>
+    </article>
+    <article class="metric metric--warning">
+      <span>Errores internos</span>
+      <strong>{{ summary.serverErrors }}</strong>
+    </article>
+  </section>
+
+  <section class="panel security-panel">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker"><svg lucideShieldAlert size="17" aria-hidden="true"></svg> Auditoría</span>
+        <h2>Eventos de seguridad</h2>
+      </div>
+      <span>{{ eventPage().totalElements }} registros</span>
+    </div>
+
+    <div class="filters">
+      <label>
+        Tipo
+        <select [value]="type()" (change)="changeType($any($event.target).value)">
+          <option value="">Todos los tipos</option>
+          @for (option of eventTypes; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Resultado
+        <select [value]="outcome()" (change)="changeOutcome($any($event.target).value)">
+          <option value="">Todos</option>
+          <option value="EXITO">Exitoso</option>
+          <option value="FALLO">Fallido</option>
+          <option value="BLOQUEADO">Bloqueado</option>
+        </select>
+      </label>
+      <button class="button button--primary" type="button" [disabled]="loading()" (click)="applyEventFilters()">
+        Aplicar filtros
+      </button>
+    </div>
+
+    @if (eventPage().content.length) {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Evento</th>
+              <th>Resultado</th>
+              <th>Origen</th>
+              <th>Solicitud</th>
+              <th>Código HTTP</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (event of eventPage().content; track event.id) {
+              <tr>
+                <td>{{ formatDateTime(event.occurredAt) }}</td>
+                <td>
+                  <strong>{{ event.typeLabel }}</strong>
+                  @if (event.detailLabel) {
+                    <small>{{ event.detailLabel }}</small>
+                  }
+                </td>
+                <td><span [class]="outcomeClass(event.outcome)">{{ event.outcomeLabel }}</span></td>
+                <td><code>{{ event.clientIpMasked }}</code></td>
+                <td>
+                  <span>{{ event.httpMethod || '-' }} {{ event.requestPath || '' }}</span>
+                  @if (event.requestId) {
+                    <small>Seguimiento: {{ event.requestId }}</small>
+                  }
+                </td>
+                <td>{{ event.statusCode ?? '-' }}</td>
+                <td>
+                  @if (event.blockable && event.clientIpMasked !== 'No disponible') {
+                    <button class="icon-button icon-button--danger" type="button" title="Bloquear origen" aria-label="Bloquear origen" (click)="openBlock(event)">
+                      <svg lucideBan size="18" aria-hidden="true"></svg>
+                    </button>
+                  } @else {
+                    <span class="muted">-</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination [page]="eventPage()" (goTo)="loadEvents($event)" />
+    } @else {
+      <app-empty-state title="No hay eventos para estos filtros" description="Cambia el periodo o los filtros para ampliar la búsqueda." />
+    }
+  </section>
+
+  <section class="panel security-panel">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Control de acceso</span>
+        <h2>Orígenes bloqueados</h2>
+      </div>
+      <label class="active-filter">
+        <input type="checkbox" [checked]="activeOnly()" (change)="changeActiveOnly($any($event.target).checked)" />
+        Solo activos
+      </label>
+    </div>
+
+    @if (blockPage().content.length) {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Origen</th>
+              <th>Motivo</th>
+              <th>Creado</th>
+              <th>Vence</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (block of blockPage().content; track block.id) {
+              <tr>
+                <td><code>{{ block.clientIpMasked }}</code></td>
+                <td>{{ block.reason }}</td>
+                <td>{{ formatDateTime(block.createdAt) }}</td>
+                <td>{{ formatDateTime(block.expiresAt) }}</td>
+                <td>
+                  <span [class]="block.active ? 'event-status event-status--blocked' : 'event-status'">
+                    {{ block.active ? 'Activo' : 'Finalizado' }}
+                  </span>
+                </td>
+                <td>
+                  @if (block.active) {
+                    <button class="icon-button" type="button" title="Desbloquear origen" aria-label="Desbloquear origen" (click)="unblockTarget.set(block)">
+                      <svg lucideUnlock size="18" aria-hidden="true"></svg>
+                    </button>
+                  } @else {
+                    <span class="muted">-</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination [page]="blockPage()" (goTo)="loadBlocks($event)" />
+    } @else {
+      <app-empty-state title="No hay bloqueos activos" description="Los bloqueos temporales creados desde los eventos aparecerán aquí." />
+    }
+  </section>
+} @else if (!error()) {
+  <section class="panel locked-panel">
+    <svg lucideShieldCheck size="28" aria-hidden="true"></svg>
+    <div>
+      <h2>Verificación requerida</h2>
+      <p>Confirma tu segundo factor para consultar los eventos y controles de seguridad.</p>
+    </div>
+    <button class="button button--primary" type="button" (click)="mfaOpen.set(true)">Verificar MFA</button>
+  </section>
+}
+
+@if (blockTarget(); as event) {
+  <div class="modal-backdrop" role="presentation">
+    <section class="modal security-modal" role="dialog" aria-modal="true" aria-label="Bloquear origen temporalmente">
+      <div class="modal-heading">
+        <div>
+          <span class="section-kicker"><svg lucideBan size="17" aria-hidden="true"></svg> Bloqueo temporal</span>
+          <h2>Bloquear {{ event.clientIpMasked }}</h2>
+        </div>
+        <button class="icon-button" type="button" aria-label="Cerrar" (click)="blockTarget.set(null)">
+          <svg lucideX size="18" aria-hidden="true"></svg>
+        </button>
+      </div>
+      <p>El bloqueo se aplicará a las rutas de la API, excepto al webhook de WhatsApp. Tu origen actual nunca puede bloquearse desde esta sesión.</p>
+      <form [formGroup]="blockForm" (ngSubmit)="confirmBlock()">
+        <label>
+          Duración
+          <select formControlName="durationMinutes">
+            <option [ngValue]="30">30 minutos</option>
+            <option [ngValue]="60">1 hora</option>
+            <option [ngValue]="360">6 horas</option>
+            <option [ngValue]="1440">24 horas</option>
+            <option [ngValue]="10080">7 días</option>
+          </select>
+        </label>
+        <label>
+          Motivo
+          <textarea rows="3" maxlength="240" formControlName="reason" placeholder="Describe por qué se aplica este bloqueo"></textarea>
+          <app-field-error [control]="blockForm.controls.reason" />
+        </label>
+        <div class="modal__actions">
+          <button class="button" type="button" (click)="blockTarget.set(null)">Cancelar</button>
+          <button class="button button--danger" type="submit" [disabled]="saving()">
+            <svg lucideBan size="17" aria-hidden="true"></svg>
+            {{ saving() ? 'Bloqueando...' : 'Confirmar bloqueo' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (unblockTarget(); as block) {
+  <div class="modal-backdrop" role="presentation">
+    <section class="modal security-modal" role="dialog" aria-modal="true" aria-label="Desbloquear origen">
+      <span class="section-kicker"><svg lucideUnlock size="17" aria-hidden="true"></svg> Revocar bloqueo</span>
+      <h2>Desbloquear {{ block.clientIpMasked }}</h2>
+      <p>Este origen podrá volver a llamar a la API inmediatamente.</p>
+      <div class="modal__actions">
+        <button class="button" type="button" (click)="unblockTarget.set(null)">Cancelar</button>
+        <button class="button button--primary" type="button" [disabled]="saving()" (click)="confirmUnblock()">
+          {{ saving() ? 'Desbloqueando...' : 'Confirmar desbloqueo' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+<app-mfa-challenge
+  [open]="mfaOpen()"
+  reason="Desbloquea temporalmente el apartado de auditoría y controles de seguridad."
+  (closed)="mfaOpen.set(false)"
+  (verified)="handleMfaVerified()"
+/>

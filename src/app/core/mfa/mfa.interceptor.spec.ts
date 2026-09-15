@@ -31,6 +31,9 @@ describe('mfaInterceptor', () => {
 
     http.put('https://api.example.test/api/admin/cred-reminder-audience', {}).subscribe();
     expect(controller.expectOne('https://api.example.test/api/admin/cred-reminder-audience').request.headers.get('X-MFA-Token')).toBe('mfa-token');
+
+    http.get('https://api.example.test/api/admin/security/events').subscribe();
+    expect(controller.expectOne('https://api.example.test/api/admin/security/events').request.headers.get('X-MFA-Token')).toBe('mfa-token');
   });
 
   it('does not leak X-MFA-Token to external URLs', () => {

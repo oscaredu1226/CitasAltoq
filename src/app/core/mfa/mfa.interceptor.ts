@@ -26,6 +26,10 @@ function requiresMfaHeader(method: string, requestUrl: string): boolean {
     return method === 'GET' || method === 'PUT';
   }
 
+  if (path.startsWith('/api/admin/security')) {
+    return true;
+  }
+
   if (method === 'POST' && (path === '/api/admin/users' || path === '/api/admin/users/admins')) {
     return true;
   }
