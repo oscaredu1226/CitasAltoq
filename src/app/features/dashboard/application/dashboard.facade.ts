@@ -4,6 +4,7 @@ import { addDaysDateOnly, todayDateOnly } from '../../../shared/utils/date-only'
 import { AppointmentsRepository, Appointment } from '../../appointments/infrastructure/appointments.repository';
 import { PatientsRepository } from '../../patients/infrastructure/patients.repository';
 import { AppointmentPatient } from '../../appointments/infrastructure/appointments.repository';
+import { DashboardRepository } from '../infrastructure/dashboard.repository';
 
 export interface DashboardAppointmentRow {
   appointment: Appointment;
@@ -36,6 +37,7 @@ export interface DashboardFilters {
 export class DashboardFacade {
   private readonly patients = inject(PatientsRepository);
   private readonly appointments = inject(AppointmentsRepository);
+  private readonly dashboard = inject(DashboardRepository);
 
   load(filters: DashboardFilters = {}): Observable<DashboardData> {
     const today = todayDateOnly();
@@ -53,16 +55,7 @@ export class DashboardFacade {
 
     return forkJoin({
       totalPatients: total(this.patients.list({ ...filters, page: 0, size: 1 })),
-      todayDate: of(today),
-      tomorrowDate: of(tomorrow),
-      todayScheduled: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', page: 0, size: 1 })),
-      todayConfirmed: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
-      todayCannotAttend: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
-      todayPending: total(this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', confirmationStatus: 'PENDING', page: 0, size: 1 })),
-      tomorrowScheduled: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', page: 0, size: 1 })),
-      tomorrowConfirmed: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'CONFIRMED', page: 0, size: 1 })),
-      tomorrowCannotAttend: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'CANNOT_ATTEND', page: 0, size: 1 })),
-      tomorrowPending: total(this.appointments.list({ ...appointmentFilters, scheduledDate: tomorrow, status: 'SCHEDULED', confirmationStatus: 'PENDING', page: 0, size: 1 })),
+      summary: this.dashboard.summary(filters),
       todayAppointments: this.appointments.list({ ...appointmentFilters, scheduledDate: today, status: 'SCHEDULED', page: 0, size: 6 }).pipe(
         map((page) => page.content),
         map((appointments) => this.appointmentRows(appointments)),
@@ -73,7 +66,21 @@ export class DashboardFacade {
         map((appointments) => this.appointmentRows(appointments)),
         catchError(() => of([])),
       ),
-    });
+    }).pipe(map(({ totalPatients, summary, todayAppointments, nextAppointments }) => ({
+      totalPatients,
+      todayDate: summary.today.date,
+      tomorrowDate: summary.tomorrow.date,
+      todayScheduled: summary.today.total,
+      todayConfirmed: summary.today.confirmed,
+      todayCannotAttend: summary.today.cannotAttend,
+      todayPending: summary.today.noResponse,
+      tomorrowScheduled: summary.tomorrow.total,
+      tomorrowConfirmed: summary.tomorrow.confirmed,
+      tomorrowCannotAttend: summary.tomorrow.cannotAttend,
+      tomorrowPending: summary.tomorrow.noResponse,
+      todayAppointments,
+      nextAppointments,
+    })));
   }
 
   private appointmentRows(appointments: Appointment[]): DashboardAppointmentRow[] {
