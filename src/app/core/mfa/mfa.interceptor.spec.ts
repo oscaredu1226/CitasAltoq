@@ -34,6 +34,15 @@ describe('mfaInterceptor', () => {
 
     http.get('https://api.example.test/api/admin/security/events').subscribe();
     expect(controller.expectOne('https://api.example.test/api/admin/security/events').request.headers.get('X-MFA-Token')).toBe('mfa-token');
+
+    http.get('https://api.example.test/api/admin/daily-reports/subscriptions').subscribe();
+    expect(controller.expectOne('https://api.example.test/api/admin/daily-reports/subscriptions').request.headers.get('X-MFA-Token')).toBe('mfa-token');
+
+    http.get('https://api.example.test/api/admin/daily-reports/subscriptions/candidates').subscribe();
+    expect(controller.expectOne('https://api.example.test/api/admin/daily-reports/subscriptions/candidates').request.headers.get('X-MFA-Token')).toBe('mfa-token');
+
+    http.post('https://api.example.test/api/admin/daily-reports/subscriptions/report-id/send-now', {}).subscribe();
+    expect(controller.expectOne('https://api.example.test/api/admin/daily-reports/subscriptions/report-id/send-now').request.headers.get('X-MFA-Token')).toBe('mfa-token');
   });
 
   it('does not leak X-MFA-Token to external URLs', () => {

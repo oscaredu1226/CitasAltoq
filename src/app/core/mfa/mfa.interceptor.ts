@@ -30,6 +30,10 @@ function requiresMfaHeader(method: string, requestUrl: string): boolean {
     return true;
   }
 
+  if (path.startsWith('/api/admin/daily-reports/')) {
+    return true;
+  }
+
   if (method === 'POST' && (path === '/api/admin/users' || path === '/api/admin/users/admins')) {
     return true;
   }
