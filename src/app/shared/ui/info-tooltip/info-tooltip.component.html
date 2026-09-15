@@ -1,12 +1,18 @@
 <span class="info-tooltip">
   <button
+    #trigger
     class="info-tooltip__trigger"
     type="button"
-    [attr.aria-describedby]="id"
+    [attr.aria-describedby]="open() ? id : null"
     [attr.aria-label]="ariaLabel()"
-    [attr.title]="text()"
+    (blur)="hide()"
+    (focus)="show()"
+    (mouseenter)="show()"
+    (mouseleave)="hide()"
   >
     <svg lucideCircleHelp size="14" aria-hidden="true"></svg>
   </button>
-  <span class="info-tooltip__bubble" role="tooltip" [id]="id">{{ text() }}</span>
+  @if (open()) {
+    <span class="info-tooltip__bubble" role="tooltip" [id]="id" [ngStyle]="bubbleStyle()">{{ text() }}</span>
+  }
 </span>

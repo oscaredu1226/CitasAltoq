@@ -32,24 +32,18 @@
 .info-tooltip__bubble {
   background: #0f172a;
   border-radius: 6px;
-  bottom: calc(100% + 8px);
   box-shadow: var(--shadow-md);
   color: #fff;
   font-size: 12px;
   font-weight: 650;
-  left: 50%;
   line-height: 1.35;
-  max-width: min(260px, calc(100vw - 32px));
-  opacity: 0;
   padding: 9px 10px;
   pointer-events: none;
-  position: absolute;
+  position: fixed;
   text-align: left;
-  transform: translate(-50%, 4px);
-  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
-  visibility: hidden;
   width: max-content;
-  z-index: 80;
+  white-space: normal;
+  z-index: 1000;
 }
 
 .info-tooltip__bubble::after {
@@ -60,11 +54,4 @@
   position: absolute;
   top: 100%;
   transform: translateX(-50%);
-}
-
-.info-tooltip:hover .info-tooltip__bubble,
-.info-tooltip:focus-within .info-tooltip__bubble {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  visibility: visible;
 }
