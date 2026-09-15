@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { LucideCircleCheck, LucideCircleX, LucideSave, LucideShieldCheck } from '@lucide/angular';
-import { finalize } from 'rxjs';
+import { LucideCircleCheck, LucideCircleX, LucideMail, LucideSave, LucideSend, LucideShieldCheck, LucideTrash2 } from '@lucide/angular';
+import { finalize, forkJoin } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin, isMasterAdmin } from '../../../core/auth/auth.models';
 import { mapApiError } from '../../../core/http/error-message.mapper';
@@ -12,12 +12,14 @@ import { OrganizationStore } from '../../organization/application/organization.s
 import {
   OperationsRepository,
   OperationsStatus,
+  DailyReportCandidate,
+  DailyReportSubscription,
   ReminderAudience,
 } from '../infrastructure/operations.repository';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AlertComponent, MfaChallengeComponent, PageTitleComponent, StatusBadgeComponent, LucideCircleCheck, LucideCircleX, LucideSave, LucideShieldCheck],
+  imports: [AlertComponent, MfaChallengeComponent, PageTitleComponent, StatusBadgeComponent, LucideCircleCheck, LucideCircleX, LucideMail, LucideSave, LucideSend, LucideShieldCheck, LucideTrash2],
   templateUrl: './operations.page.html',
   styleUrl: './operations.page.css',
 })
@@ -43,6 +45,13 @@ export class OperationsPage {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly reportSubscriptions = signal<DailyReportSubscription[]>([]);
+  readonly reportUsers = signal<DailyReportCandidate[]>([]);
+  readonly selectedReportUserId = signal('');
+  readonly newReportEmail = signal('');
+  readonly reportLoading = signal(false);
+  readonly reportSaving = signal(false);
+  readonly deleteConfirmationId = signal('');
   readonly adminUser = computed(() => isAdmin(this.auth.session.user()));
   readonly masterAdmin = computed(() => isMasterAdmin(this.auth.session.user()));
   readonly canManageAudience = computed(() => this.masterAdmin() && this.mfa.elevated());
@@ -86,6 +95,13 @@ export class OperationsPage {
   readonly canEnableAll = computed(() => this.audienceMode() !== 'ALL' || this.selectedIds().size !== this.activeEstablishments().length);
   readonly canSave = computed(() => !this.saving()
     && this.hasAudienceChanges());
+  readonly availableReportUsers = computed(() => {
+    const configured = new Set(this.reportSubscriptions().map((subscription) => subscription.userId));
+    return this.reportUsers().filter((user) => !configured.has(user.userId));
+  });
+  readonly canAddReport = computed(() => Boolean(
+    this.selectedReportUserId() && validEmail(this.newReportEmail()) && !this.reportSaving(),
+  ));
   readonly saveBlockedMessage = computed(() => {
     if (this.canSave()) {
       return '';
@@ -211,6 +227,117 @@ export class OperationsPage {
     });
   }
 
+  selectReportUser(userId: string): void {
+    this.selectedReportUserId.set(userId);
+    const user = this.reportUsers().find((item) => item.userId === userId);
+    this.newReportEmail.set(user?.userEmail ?? '');
+  }
+
+  updateNewReportEmail(email: string): void {
+    this.newReportEmail.set(email);
+  }
+
+  addReportSubscription(): void {
+    if (!this.ensureMfa() || !this.canAddReport()) {
+      this.error.set('Selecciona un usuario con establecimiento e ingresa un correo válido.');
+      return;
+    }
+    this.reportSaving.set(true);
+    this.error.set('');
+    this.repo.createDailyReportSubscription({
+      userId: this.selectedReportUserId(),
+      recipientEmail: this.newReportEmail().trim(),
+    }).pipe(finalize(() => this.reportSaving.set(false))).subscribe({
+      next: (subscription) => {
+        this.reportSubscriptions.update((items) => [...items, subscription]
+          .sort((left, right) => left.establishmentName.localeCompare(right.establishmentName, 'es-PE')));
+        this.selectedReportUserId.set('');
+        this.newReportEmail.set('');
+        this.message.set('Destinatario de reporte agregado.');
+      },
+      error: (error) => this.error.set(mapApiError(error).message),
+    });
+  }
+
+  updateReportEmail(id: string, recipientEmail: string): void {
+    this.reportSubscriptions.update((items) => items.map((item) => item.id === id
+      ? { ...item, recipientEmail }
+      : item));
+  }
+
+  updateReportActive(id: string, active: boolean): void {
+    this.reportSubscriptions.update((items) => items.map((item) => item.id === id
+      ? { ...item, active }
+      : item));
+  }
+
+  saveReportSubscription(subscription: DailyReportSubscription): void {
+    if (!this.ensureMfa() || !validEmail(subscription.recipientEmail) || this.reportSaving()) {
+      this.error.set('Ingresa un correo válido antes de guardar.');
+      return;
+    }
+    this.reportSaving.set(true);
+    this.error.set('');
+    this.repo.updateDailyReportSubscription(subscription)
+      .pipe(finalize(() => this.reportSaving.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.reportSubscriptions.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+          this.message.set('Configuración del reporte actualizada.');
+        },
+        error: (error) => this.error.set(mapApiError(error).message),
+      });
+  }
+
+  sendReportTest(subscription: DailyReportSubscription): void {
+    if (!this.ensureMfa() || this.reportSaving()) {
+      return;
+    }
+    this.reportSaving.set(true);
+    this.error.set('');
+    this.repo.sendDailyReportTest(subscription.id)
+      .pipe(finalize(() => this.reportSaving.set(false)))
+      .subscribe({
+        next: () => this.message.set('Reporte de prueba enviado al correo configurado.'),
+        error: (error) => this.error.set(mapApiError(error).message),
+      });
+  }
+
+  requestDeleteReport(id: string): void {
+    if (this.deleteConfirmationId() !== id) {
+      this.deleteConfirmationId.set(id);
+      return;
+    }
+    if (!this.ensureMfa() || this.reportSaving()) {
+      return;
+    }
+    this.reportSaving.set(true);
+    this.repo.deleteDailyReportSubscription(id)
+      .pipe(finalize(() => this.reportSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.reportSubscriptions.update((items) => items.filter((item) => item.id !== id));
+          this.deleteConfirmationId.set('');
+          this.message.set('Destinatario de reporte eliminado.');
+        },
+        error: (error) => this.error.set(mapApiError(error).message),
+      });
+  }
+
+  private loadReportConfiguration(): void {
+    this.reportLoading.set(true);
+    forkJoin({
+      subscriptions: this.repo.dailyReportSubscriptions(),
+      users: this.repo.dailyReportCandidates(),
+    }).pipe(finalize(() => this.reportLoading.set(false))).subscribe({
+      next: ({ subscriptions, users }) => {
+        this.reportSubscriptions.set(subscriptions);
+        this.reportUsers.set(users);
+      },
+      error: (error) => this.error.set(mapApiError(error).message),
+    });
+  }
+
   isSelected(id: string): boolean {
     return this.selectedIds().has(id);
   }
@@ -244,6 +371,7 @@ export class OperationsPage {
         this.audienceForbidden.set(false);
         this.organizations.load();
         this.applyAudience(audience);
+        this.loadReportConfiguration();
       },
       error: (error) => {
         const message = this.audienceErrorMessage(error);
@@ -330,4 +458,8 @@ function uniqueOptions(options: { id: string; name: string }[]): { id: string; n
 
 function sameSet(left: Set<string>, right: Set<string>): boolean {
   return left.size === right.size && Array.from(left).every((value) => right.has(value));
+}
+
+function validEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }

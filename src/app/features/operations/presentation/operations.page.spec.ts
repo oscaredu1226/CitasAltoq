@@ -73,6 +73,12 @@ describe('OperationsPage', () => {
     status: ReturnType<typeof vi.fn>;
     reminderAudience: ReturnType<typeof vi.fn>;
     updateReminderAudience: ReturnType<typeof vi.fn>;
+    dailyReportSubscriptions: ReturnType<typeof vi.fn>;
+    dailyReportCandidates: ReturnType<typeof vi.fn>;
+    createDailyReportSubscription: ReturnType<typeof vi.fn>;
+    updateDailyReportSubscription: ReturnType<typeof vi.fn>;
+    deleteDailyReportSubscription: ReturnType<typeof vi.fn>;
+    sendDailyReportTest: ReturnType<typeof vi.fn>;
   };
   let fixture: ComponentFixture<OperationsPage>;
 
@@ -86,6 +92,12 @@ describe('OperationsPage', () => {
       status: vi.fn(() => of(status)),
       reminderAudience: vi.fn(() => reminderAudienceResult),
       updateReminderAudience: vi.fn(() => of({ ...audience, updatedAt: '2026-08-30T23:30:00Z' })),
+      dailyReportSubscriptions: vi.fn(() => of([])),
+      dailyReportCandidates: vi.fn(() => of([])),
+      createDailyReportSubscription: vi.fn(),
+      updateDailyReportSubscription: vi.fn(),
+      deleteDailyReportSubscription: vi.fn(),
+      sendDailyReportTest: vi.fn(),
     };
 
     TestBed.configureTestingModule({

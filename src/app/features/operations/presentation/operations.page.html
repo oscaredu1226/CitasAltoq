@@ -157,6 +157,96 @@
           </section>
         </div>
       }
+
+      <section class="panel report-panel">
+        <div class="report-header">
+          <div>
+            <span class="audience-kicker"><svg lucideMail size="17" aria-hidden="true"></svg> Reporte diario</span>
+            <h2>Destinatarios por establecimiento</h2>
+            <p>A las 8:00 p. m. (hora de Perú) se enviará un PDF con el resumen y detalle de las citas del día.</p>
+          </div>
+        </div>
+
+        @if (reportLoading()) {
+          <div class="audience-loading"><span class="spinner"></span> Cargando destinatarios...</div>
+        } @else {
+          <div class="report-form">
+            <label>
+              Usuario del establecimiento
+              <select [value]="selectedReportUserId()" (change)="selectReportUser($any($event.target).value)">
+                <option value="">Selecciona un usuario</option>
+                @for (user of availableReportUsers(); track user.userId) {
+                  <option [value]="user.userId">{{ user.userDisplayName || user.userEmail }} · {{ user.establishmentName }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Correo que recibirá el reporte
+              <input
+                type="email"
+                maxlength="320"
+                placeholder="reportes@institucion.pe"
+                [value]="newReportEmail()"
+                (input)="updateNewReportEmail($any($event.target).value)"
+              />
+            </label>
+            <button class="button button--primary" type="button" [disabled]="!canAddReport()" (click)="addReportSubscription()">
+              Agregar destinatario
+            </button>
+          </div>
+
+          <div class="report-list">
+            @for (subscription of reportSubscriptions(); track subscription.id) {
+              <div class="report-row">
+                <div class="report-row__identity">
+                  <strong>{{ subscription.userDisplayName || subscription.userEmail }}</strong>
+                  <span>{{ subscription.establishmentName }}</span>
+                  <small>{{ subscription.microredName }} · {{ subscription.redName }}</small>
+                </div>
+                <label class="report-email">
+                  Correo destinatario
+                  <input
+                    type="email"
+                    maxlength="320"
+                    [value]="subscription.recipientEmail"
+                    (input)="updateReportEmail(subscription.id, $any($event.target).value)"
+                  />
+                </label>
+                <label class="report-active">
+                  <input
+                    type="checkbox"
+                    [checked]="subscription.active"
+                    (change)="updateReportActive(subscription.id, $any($event.target).checked)"
+                  />
+                  Activo
+                </label>
+                <div class="report-actions">
+                  <button class="icon-button" type="button" title="Guardar destinatario" [disabled]="reportSaving()" (click)="saveReportSubscription(subscription)">
+                    <svg lucideSave size="17" aria-hidden="true"></svg>
+                  </button>
+                  <button class="icon-button" type="button" title="Enviar reporte de prueba" [disabled]="reportSaving()" (click)="sendReportTest(subscription)">
+                    <svg lucideSend size="17" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    class="icon-button icon-button--danger"
+                    type="button"
+                    [title]="deleteConfirmationId() === subscription.id ? 'Confirmar eliminación' : 'Eliminar destinatario'"
+                    [disabled]="reportSaving()"
+                    (click)="requestDeleteReport(subscription.id)"
+                  >
+                    <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                  </button>
+                </div>
+                @if (deleteConfirmationId() === subscription.id) {
+                  <p class="report-delete-warning">Vuelve a pulsar eliminar para confirmar.</p>
+                }
+              </div>
+            } @empty {
+              <p class="report-empty">Todavía no hay destinatarios configurados.</p>
+            }
+          </div>
+        }
+      </section>
     } @else if (masterAdmin()) {
       <section class="panel audience-restricted">
         <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> MFA requerido</span>
