@@ -23,6 +23,7 @@ export interface SecurityEvent {
   typeLabel: string;
   outcome: SecurityEventOutcome;
   outcomeLabel: string;
+  clientIpAddress?: string | null;
   clientIpMasked: string;
   httpMethod: string | null;
   requestPath: string | null;
@@ -54,6 +55,7 @@ export interface SecurityOverview {
 
 export interface SecurityIpBlock {
   id: string;
+  clientIpAddress?: string | null;
   clientIpMasked: string;
   reason: string;
   sourceEventId: string;

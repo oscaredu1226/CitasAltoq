@@ -180,6 +180,13 @@ td code {
   color: #b91c1c;
 }
 
+.event-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 76px;
+}
+
 .active-filter {
   display: inline-flex;
   align-items: center;
@@ -234,6 +241,35 @@ td code {
   resize: vertical;
 }
 
+.event-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  margin: 22px 0 0;
+}
+
+.event-detail-grid > div {
+  min-width: 0;
+}
+
+.event-detail-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.event-detail-grid dt {
+  margin-bottom: 5px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.event-detail-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
 @media (max-width: 1180px) {
   .metrics-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -249,8 +285,13 @@ td code {
   }
 
   .filters,
-  .metrics-grid {
+  .metrics-grid,
+  .event-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .event-detail-grid__wide {
+    grid-column: auto;
   }
 
   .metric span {

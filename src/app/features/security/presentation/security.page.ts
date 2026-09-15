@@ -1,15 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   LucideBan,
+  LucideEye,
   LucideRefreshCw,
   LucideShieldAlert,
   LucideShieldCheck,
   LucideUnlock,
   LucideX,
 } from '@lucide/angular';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isMasterAdmin } from '../../../core/auth/auth.models';
 import { mapApiError } from '../../../core/http/error-message.mapper';
@@ -40,6 +41,7 @@ import { SecurityRepository } from '../infrastructure/security.repository';
     EmptyStateComponent,
     FieldErrorComponent,
     LucideBan,
+    LucideEye,
     LucideRefreshCw,
     LucideShieldAlert,
     LucideShieldCheck,
@@ -59,7 +61,10 @@ export class SecurityPage {
   private readonly mfa = inject(MfaStore);
   private readonly fb = inject(FormBuilder);
 
-  readonly loading = signal(false);
+  readonly overviewLoading = signal(false);
+  readonly eventsLoading = signal(false);
+  readonly blocksLoading = signal(false);
+  readonly loading = computed(() => this.overviewLoading() || this.eventsLoading() || this.blocksLoading());
   readonly saving = signal(false);
   readonly mfaOpen = signal(false);
   readonly overview = signal<SecurityOverview | null>(null);
@@ -67,6 +72,7 @@ export class SecurityPage {
   readonly blockPage = signal(emptyPage<SecurityIpBlock>(0, 25));
   readonly blockTarget = signal<SecurityEvent | null>(null);
   readonly unblockTarget = signal<SecurityIpBlock | null>(null);
+  readonly eventDetailTarget = signal<SecurityEvent | null>(null);
   readonly error = signal('');
   readonly message = signal('');
   readonly requestId = signal<string | undefined>(undefined);
@@ -116,19 +122,17 @@ export class SecurityPage {
     if (!this.ensureMfa()) {
       return;
     }
-    this.loading.set(true);
     this.error.set('');
     this.requestId.set(undefined);
-    forkJoin({
-      overview: this.repository.overview(this.hours()),
-      events: this.repository.events(this.filters(0)),
-      blocks: this.repository.blocks(this.activeOnly(), 0, 25),
-    }).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: ({ overview, events, blocks }) => {
-        this.overview.set(overview);
-        this.eventPage.set(events);
-        this.blockPage.set(blocks);
-      },
+    this.loadOverview();
+    this.loadEvents(0);
+    this.loadBlocks(0);
+  }
+
+  private loadOverview(): void {
+    this.overviewLoading.set(true);
+    this.repository.overview(this.hours()).pipe(finalize(() => this.overviewLoading.set(false))).subscribe({
+      next: (overview) => this.overview.set(overview),
       error: (error) => this.handleError(error),
     });
   }
@@ -141,8 +145,8 @@ export class SecurityPage {
     if (!this.ensureMfa()) {
       return;
     }
-    this.loading.set(true);
-    this.repository.events(this.filters(page)).pipe(finalize(() => this.loading.set(false))).subscribe({
+    this.eventsLoading.set(true);
+    this.repository.events(this.filters(page)).pipe(finalize(() => this.eventsLoading.set(false))).subscribe({
       next: (response) => this.eventPage.set(response),
       error: (error) => this.handleError(error),
     });
@@ -152,8 +156,8 @@ export class SecurityPage {
     if (!this.ensureMfa()) {
       return;
     }
-    this.loading.set(true);
-    this.repository.blocks(this.activeOnly(), page, 25).pipe(finalize(() => this.loading.set(false))).subscribe({
+    this.blocksLoading.set(true);
+    this.repository.blocks(this.activeOnly(), page, 25).pipe(finalize(() => this.blocksLoading.set(false))).subscribe({
       next: (response) => this.blockPage.set(response),
       error: (error) => this.handleError(error),
     });
@@ -178,7 +182,7 @@ export class SecurityPage {
   }
 
   openBlock(event: SecurityEvent): void {
-    if (!event.blockable || event.clientIpMasked === 'No disponible') {
+    if (!event.blockable || this.displayEventIp(event) === 'No disponible') {
       return;
     }
     this.blockForm.reset({ durationMinutes: 60, reason: '' });
@@ -234,6 +238,14 @@ export class SecurityPage {
   }
 
   formatDateTime = formatOffsetDateTime;
+
+  displayEventIp(event: SecurityEvent): string {
+    return event.clientIpAddress || event.clientIpMasked || 'No disponible';
+  }
+
+  displayBlockIp(block: SecurityIpBlock): string {
+    return block.clientIpAddress || block.clientIpMasked || 'No disponible';
+  }
 
   private filters(page: number) {
     return {

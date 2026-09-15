@@ -78,8 +78,8 @@
           <option value="BLOQUEADO">Bloqueado</option>
         </select>
       </label>
-      <button class="button button--primary" type="button" [disabled]="loading()" (click)="applyEventFilters()">
-        Aplicar filtros
+      <button class="button button--primary" type="button" [disabled]="eventsLoading()" (click)="applyEventFilters()">
+        {{ eventsLoading() ? 'Consultando...' : 'Aplicar filtros' }}
       </button>
     </div>
 
@@ -108,7 +108,7 @@
                   }
                 </td>
                 <td><span [class]="outcomeClass(event.outcome)">{{ event.outcomeLabel }}</span></td>
-                <td><code>{{ event.clientIpMasked }}</code></td>
+                <td><code>{{ displayEventIp(event) }}</code></td>
                 <td>
                   <span>{{ event.httpMethod || '-' }} {{ event.requestPath || '' }}</span>
                   @if (event.requestId) {
@@ -117,13 +117,16 @@
                 </td>
                 <td>{{ event.statusCode ?? '-' }}</td>
                 <td>
-                  @if (event.blockable && event.clientIpMasked !== 'No disponible') {
+                  <div class="event-actions">
+                    <button class="icon-button" type="button" title="Ver detalle" aria-label="Ver detalle del evento" (click)="eventDetailTarget.set(event)">
+                      <svg lucideEye size="18" aria-hidden="true"></svg>
+                    </button>
+                  @if (event.blockable && displayEventIp(event) !== 'No disponible') {
                     <button class="icon-button icon-button--danger" type="button" title="Bloquear origen" aria-label="Bloquear origen" (click)="openBlock(event)">
                       <svg lucideBan size="18" aria-hidden="true"></svg>
                     </button>
-                  } @else {
-                    <span class="muted">-</span>
                   }
+                  </div>
                 </td>
               </tr>
             }
@@ -143,7 +146,7 @@
         <h2>Orígenes bloqueados</h2>
       </div>
       <label class="active-filter">
-        <input type="checkbox" [checked]="activeOnly()" (change)="changeActiveOnly($any($event.target).checked)" />
+        <input type="checkbox" [checked]="activeOnly()" [disabled]="blocksLoading()" (change)="changeActiveOnly($any($event.target).checked)" />
         Solo activos
       </label>
     </div>
@@ -164,7 +167,7 @@
           <tbody>
             @for (block of blockPage().content; track block.id) {
               <tr>
-                <td><code>{{ block.clientIpMasked }}</code></td>
+                <td><code>{{ displayBlockIp(block) }}</code></td>
                 <td>{{ block.reason }}</td>
                 <td>{{ formatDateTime(block.createdAt) }}</td>
                 <td>{{ formatDateTime(block.expiresAt) }}</td>
@@ -203,13 +206,41 @@
   </section>
 }
 
+@if (eventDetailTarget(); as event) {
+  <div class="modal-backdrop" role="presentation">
+    <section class="modal security-modal" role="dialog" aria-modal="true" aria-label="Detalle del evento de seguridad">
+      <div class="modal-heading">
+        <div>
+          <span class="section-kicker"><svg lucideEye size="17" aria-hidden="true"></svg> Detalle del evento</span>
+          <h2>{{ event.typeLabel }}</h2>
+        </div>
+        <button class="icon-button" type="button" aria-label="Cerrar" (click)="eventDetailTarget.set(null)">
+          <svg lucideX size="18" aria-hidden="true"></svg>
+        </button>
+      </div>
+      <dl class="event-detail-grid">
+        <div><dt>Fecha y hora</dt><dd>{{ formatDateTime(event.occurredAt) }}</dd></div>
+        <div><dt>Resultado</dt><dd><span [class]="outcomeClass(event.outcome)">{{ event.outcomeLabel }}</span></dd></div>
+        <div><dt>Dirección IP</dt><dd><code>{{ displayEventIp(event) }}</code></dd></div>
+        <div><dt>Código HTTP</dt><dd>{{ event.statusCode ?? 'No disponible' }}</dd></div>
+        <div class="event-detail-grid__wide"><dt>Solicitud</dt><dd>{{ event.httpMethod || '-' }} {{ event.requestPath || '' }}</dd></div>
+        <div class="event-detail-grid__wide"><dt>Descripción</dt><dd>{{ event.detailLabel || 'Sin detalle adicional' }}</dd></div>
+        <div class="event-detail-grid__wide"><dt>Código de seguimiento</dt><dd><code>{{ event.requestId || 'No disponible' }}</code></dd></div>
+      </dl>
+      <div class="modal__actions">
+        <button class="button button--primary" type="button" (click)="eventDetailTarget.set(null)">Cerrar</button>
+      </div>
+    </section>
+  </div>
+}
+
 @if (blockTarget(); as event) {
   <div class="modal-backdrop" role="presentation">
     <section class="modal security-modal" role="dialog" aria-modal="true" aria-label="Bloquear origen temporalmente">
       <div class="modal-heading">
         <div>
           <span class="section-kicker"><svg lucideBan size="17" aria-hidden="true"></svg> Bloqueo temporal</span>
-          <h2>Bloquear {{ event.clientIpMasked }}</h2>
+          <h2>Bloquear {{ displayEventIp(event) }}</h2>
         </div>
         <button class="icon-button" type="button" aria-label="Cerrar" (click)="blockTarget.set(null)">
           <svg lucideX size="18" aria-hidden="true"></svg>
@@ -248,7 +279,7 @@
   <div class="modal-backdrop" role="presentation">
     <section class="modal security-modal" role="dialog" aria-modal="true" aria-label="Desbloquear origen">
       <span class="section-kicker"><svg lucideUnlock size="17" aria-hidden="true"></svg> Revocar bloqueo</span>
-      <h2>Desbloquear {{ block.clientIpMasked }}</h2>
+      <h2>Desbloquear {{ displayBlockIp(block) }}</h2>
       <p>Este origen podrá volver a llamar a la API inmediatamente.</p>
       <div class="modal__actions">
         <button class="button" type="button" (click)="unblockTarget.set(null)">Cancelar</button>
