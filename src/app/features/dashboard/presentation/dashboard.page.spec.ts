@@ -112,8 +112,10 @@ describe('DashboardPage', () => {
     const charts = fixture.nativeElement.querySelectorAll('.confirmation-chart');
     expect(charts).toHaveLength(2);
     expect(charts[0].textContent).toContain('Confirmaciones de hoy');
-    expect(charts[0].textContent).toContain('6 · 60%');
+    expect(charts[0].textContent).toContain('Sí asistirá');
+    expect(charts[0].textContent).toContain('60%');
     expect(charts[1].textContent).toContain('Confirmaciones de mañana');
-    expect(charts[1].textContent).toContain('2 · 40%');
+    expect(charts[1].textContent).toContain('40%');
+    expect(fixture.componentInstance.donutBackground(10, 6, 1, 3)).toContain('conic-gradient');
   });
 });

@@ -145,6 +145,27 @@ export class DashboardPage {
     return Math.min(100, Math.round((value / total) * 100));
   }
 
+  donutBackground(total: number | null, confirmed: number | null, cannotAttend: number | null, pending: number | null): string {
+    const safeConfirmed = Math.max(0, confirmed ?? 0);
+    const safeCannotAttend = Math.max(0, cannotAttend ?? 0);
+    const safePending = Math.max(0, pending ?? 0);
+    const represented = safeConfirmed + safeCannotAttend + safePending;
+    const safeTotal = Math.max(total ?? 0, represented);
+    if (safeTotal === 0) {
+      return 'conic-gradient(#e7edf5 0% 100%)';
+    }
+
+    const confirmedEnd = (safeConfirmed / safeTotal) * 100;
+    const cannotAttendEnd = confirmedEnd + (safeCannotAttend / safeTotal) * 100;
+    const pendingEnd = cannotAttendEnd + (safePending / safeTotal) * 100;
+    return `conic-gradient(
+      #168a4a 0% ${confirmedEnd}%,
+      #d63b3b ${confirmedEnd}% ${cannotAttendEnd}%,
+      #d58a08 ${cannotAttendEnd}% ${pendingEnd}%,
+      #e7edf5 ${pendingEnd}% 100%
+    )`;
+  }
+
   formatDate = formatDateOnly;
 
   dateLabel(value: string): string {

@@ -72,20 +72,27 @@
             <strong>{{ number(vm.todayScheduled) }} citas</strong>
           </div>
           <div class="confirmation-chart__body">
-            @for (row of confirmationRows(vm.todayConfirmed, vm.todayCannotAttend, vm.todayPending); track row.tone) {
-              <div class="confirmation-chart__row">
-                <div class="confirmation-chart__label">
-                  <span>{{ row.label }}</span>
-                  <strong>{{ number(row.value) }} · {{ percentage(row.value, vm.todayScheduled) }}%</strong>
-                </div>
-                <div class="confirmation-chart__track" role="img" [attr.aria-label]="row.label + ': ' + row.value">
-                  <span
-                    class="confirmation-chart__bar confirmation-chart__bar--{{ row.tone }}"
-                    [style.width.%]="percentage(row.value, vm.todayScheduled)"
-                  ></span>
-                </div>
+            <div
+              class="confirmation-chart__donut"
+              role="img"
+              aria-label="Distribución de confirmaciones de hoy"
+              [style.background]="donutBackground(vm.todayScheduled, vm.todayConfirmed, vm.todayCannotAttend, vm.todayPending)"
+            >
+              <div class="confirmation-chart__donut-center">
+                <strong>{{ number(vm.todayScheduled) }}</strong>
+                <span>citas</span>
               </div>
-            }
+            </div>
+            <div class="confirmation-chart__legend">
+              @for (row of confirmationRows(vm.todayConfirmed, vm.todayCannotAttend, vm.todayPending); track row.tone) {
+                <div class="confirmation-chart__legend-row">
+                  <span class="confirmation-chart__dot confirmation-chart__dot--{{ row.tone }}" aria-hidden="true"></span>
+                  <span>{{ row.label }}</span>
+                  <strong>{{ number(row.value) }}</strong>
+                  <small>{{ percentage(row.value, vm.todayScheduled) }}%</small>
+                </div>
+              }
+            </div>
           </div>
         </article>
 
@@ -98,20 +105,27 @@
             <strong>{{ number(vm.tomorrowScheduled) }} citas</strong>
           </div>
           <div class="confirmation-chart__body">
-            @for (row of confirmationRows(vm.tomorrowConfirmed, vm.tomorrowCannotAttend, vm.tomorrowPending); track row.tone) {
-              <div class="confirmation-chart__row">
-                <div class="confirmation-chart__label">
-                  <span>{{ row.label }}</span>
-                  <strong>{{ number(row.value) }} · {{ percentage(row.value, vm.tomorrowScheduled) }}%</strong>
-                </div>
-                <div class="confirmation-chart__track" role="img" [attr.aria-label]="row.label + ': ' + row.value">
-                  <span
-                    class="confirmation-chart__bar confirmation-chart__bar--{{ row.tone }}"
-                    [style.width.%]="percentage(row.value, vm.tomorrowScheduled)"
-                  ></span>
-                </div>
+            <div
+              class="confirmation-chart__donut"
+              role="img"
+              aria-label="Distribución de confirmaciones de mañana"
+              [style.background]="donutBackground(vm.tomorrowScheduled, vm.tomorrowConfirmed, vm.tomorrowCannotAttend, vm.tomorrowPending)"
+            >
+              <div class="confirmation-chart__donut-center">
+                <strong>{{ number(vm.tomorrowScheduled) }}</strong>
+                <span>citas</span>
               </div>
-            }
+            </div>
+            <div class="confirmation-chart__legend">
+              @for (row of confirmationRows(vm.tomorrowConfirmed, vm.tomorrowCannotAttend, vm.tomorrowPending); track row.tone) {
+                <div class="confirmation-chart__legend-row">
+                  <span class="confirmation-chart__dot confirmation-chart__dot--{{ row.tone }}" aria-hidden="true"></span>
+                  <span>{{ row.label }}</span>
+                  <strong>{{ number(row.value) }}</strong>
+                  <small>{{ percentage(row.value, vm.tomorrowScheduled) }}%</small>
+                </div>
+              }
+            </div>
           </div>
         </article>
       </section>
