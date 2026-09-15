@@ -1,3 +1,10 @@
 :host {
   display: inline-flex;
 }
+
+.status-badge {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+  max-width: 100%;
+}

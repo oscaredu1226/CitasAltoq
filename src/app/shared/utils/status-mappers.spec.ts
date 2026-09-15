@@ -2,7 +2,7 @@ import { purposeLabel, statusView } from './status-mappers';
 
 describe('status mappers', () => {
   it('translates appointment status without exposing backend enum', () => {
-    expect(statusView('appointment', 'SCHEDULED')).toEqual({ label: 'Programada', tone: 'blue' });
+    expect(statusView('appointment', 'SCHEDULED')).toEqual(expect.objectContaining({ label: 'Programada', tone: 'blue' }));
   });
 
   it('keeps appointment confirmation separate from attendance', () => {
@@ -15,6 +15,11 @@ describe('status mappers', () => {
   });
 
   it('labels import batches ready for confirmation as prepared', () => {
-    expect(statusView('import', 'READY')).toEqual({ label: 'Preparada', tone: 'blue' });
+    expect(statusView('import', 'READY')).toEqual(expect.objectContaining({ label: 'Preparada', tone: 'blue' }));
+  });
+
+  it('explains operational status labels for tooltip help', () => {
+    expect(statusView('confirmation', 'CONFIRMED').description).toContain('No equivale a atención realizada');
+    expect(statusView('reminder', 'FAILED').description).toContain('recordatorio');
   });
 });

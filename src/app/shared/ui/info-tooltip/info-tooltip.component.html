@@ -1,0 +1,12 @@
+<span class="info-tooltip">
+  <button
+    class="info-tooltip__trigger"
+    type="button"
+    [attr.aria-describedby]="id"
+    [attr.aria-label]="ariaLabel()"
+    [attr.title]="text()"
+  >
+    <svg lucideCircleHelp size="14" aria-hidden="true"></svg>
+  </button>
+  <span class="info-tooltip__bubble" role="tooltip" [id]="id">{{ text() }}</span>
+</span>

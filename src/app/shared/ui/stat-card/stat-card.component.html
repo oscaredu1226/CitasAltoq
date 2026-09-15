@@ -6,8 +6,13 @@
       <span>{{ icon() }}</span>
     }
   </div>
-  <div>
-    <p>{{ label() }}</p>
+  <div class="stat-card__content">
+    <div class="stat-card__label">
+      <p>{{ label() }}</p>
+      @if (info()) {
+        <app-info-tooltip [text]="info()" [label]="'Información sobre ' + label()" />
+      }
+    </div>
     <strong>{{ value() }}</strong>
     @if (hint()) {
       <small>{{ hint() }}</small>

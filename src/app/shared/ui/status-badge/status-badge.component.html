@@ -1,1 +1,6 @@
-<span class="badge" [class]="toneClass()">{{ view().label }}</span>
+<span class="status-badge">
+  <span class="badge" [class]="toneClass()">{{ view().label }}</span>
+  @if (showInfo() && view().description; as description) {
+    <app-info-tooltip [text]="description" [label]="'Información sobre ' + view().label" />
+  }
+</span>

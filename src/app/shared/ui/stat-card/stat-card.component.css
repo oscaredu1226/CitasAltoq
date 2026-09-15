@@ -1,3 +1,17 @@
 :host {
   display: contents;
 }
+
+.stat-card__content {
+  min-width: 0;
+}
+
+.stat-card__label {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+}
+
+.stat-card__label p {
+  min-width: 0;
+}

@@ -1,0 +1,70 @@
+:host {
+  display: inline-flex;
+  line-height: 1;
+}
+
+.info-tooltip {
+  display: inline-flex;
+  position: relative;
+}
+
+.info-tooltip__trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-muted);
+  cursor: help;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  padding: 0;
+  width: 22px;
+}
+
+.info-tooltip__trigger:hover,
+.info-tooltip__trigger:focus-visible {
+  color: var(--color-primary);
+  outline: 3px solid rgba(11, 94, 215, 0.18);
+  outline-offset: 1px;
+}
+
+.info-tooltip__bubble {
+  background: #0f172a;
+  border-radius: 6px;
+  bottom: calc(100% + 8px);
+  box-shadow: var(--shadow-md);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+  left: 50%;
+  line-height: 1.35;
+  max-width: min(260px, calc(100vw - 32px));
+  opacity: 0;
+  padding: 9px 10px;
+  pointer-events: none;
+  position: absolute;
+  text-align: left;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  visibility: hidden;
+  width: max-content;
+  z-index: 80;
+}
+
+.info-tooltip__bubble::after {
+  border: 6px solid transparent;
+  border-top-color: #0f172a;
+  content: "";
+  left: 50%;
+  position: absolute;
+  top: 100%;
+  transform: translateX(-50%);
+}
+
+.info-tooltip:hover .info-tooltip__bubble,
+.info-tooltip:focus-within .info-tooltip__bubble {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}

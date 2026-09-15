@@ -48,18 +48,18 @@
       </div>
     } @else if (data(); as vm) {
       <section class="stat-grid stat-grid--five">
-        <app-stat-card label="Pacientes registrados" [value]="number(vm.totalPatients)" [iconComponent]="icons.users" tone="blue" hint="Total desde CRED" />
-        <app-stat-card label="Citas programadas hoy" [value]="number(vm.todayScheduled)" [iconComponent]="icons.calendarClock" tone="blue" [hint]="dateLabel(vm.todayDate)" />
-        <app-stat-card label="Confirmadas hoy" [value]="number(vm.todayConfirmed)" [iconComponent]="icons.circleCheck" tone="green" [hint]="dateLabel(vm.todayDate)" />
-        <app-stat-card label="Rechazadas hoy" [value]="number(vm.todayCannotAttend)" [iconComponent]="icons.circleX" tone="red" [hint]="dateLabel(vm.todayDate)" />
-        <app-stat-card label="Pendientes hoy" [value]="number(vm.todayPending)" [iconComponent]="icons.timer" tone="amber" [hint]="dateLabel(vm.todayDate)" />
+        <app-stat-card label="Pacientes registrados" [value]="number(vm.totalPatients)" [iconComponent]="icons.users" tone="blue" hint="Total desde CRED" info="Pacientes activos encontrados según el ámbito seleccionado en los filtros." />
+        <app-stat-card label="Citas programadas hoy" [value]="number(vm.todayScheduled)" [iconComponent]="icons.calendarClock" tone="blue" [hint]="dateLabel(vm.todayDate)" info="Citas CRED con estado programado para la fecha actual." />
+        <app-stat-card label="Confirmadas hoy" [value]="number(vm.todayConfirmed)" [iconComponent]="icons.circleCheck" tone="green" [hint]="dateLabel(vm.todayDate)" info="Pacientes que confirmaron intención de asistir hoy. No significa que ya fueron atendidos." />
+        <app-stat-card label="Rechazadas hoy" [value]="number(vm.todayCannotAttend)" [iconComponent]="icons.circleX" tone="red" [hint]="dateLabel(vm.todayDate)" info="Pacientes que indicaron que no podrán asistir a la cita de hoy." />
+        <app-stat-card label="Pendientes hoy" [value]="number(vm.todayPending)" [iconComponent]="icons.timer" tone="amber" [hint]="dateLabel(vm.todayDate)" info="Citas de hoy que aún no tienen confirmación del paciente." />
       </section>
 
       <section class="stat-grid stat-grid--four">
-        <app-stat-card label="Citas programadas mañana" [value]="number(vm.tomorrowScheduled)" [iconComponent]="icons.calendarDays" tone="blue" [hint]="dateLabel(vm.tomorrowDate)" />
-        <app-stat-card label="Confirmadas mañana" [value]="number(vm.tomorrowConfirmed)" [iconComponent]="icons.circleCheck" tone="green" [hint]="dateLabel(vm.tomorrowDate)" />
-        <app-stat-card label="Rechazadas mañana" [value]="number(vm.tomorrowCannotAttend)" [iconComponent]="icons.circleX" tone="red" [hint]="dateLabel(vm.tomorrowDate)" />
-        <app-stat-card label="Pendientes mañana" [value]="number(vm.tomorrowPending)" [iconComponent]="icons.timer" tone="amber" [hint]="dateLabel(vm.tomorrowDate)" />
+        <app-stat-card label="Citas programadas mañana" [value]="number(vm.tomorrowScheduled)" [iconComponent]="icons.calendarDays" tone="blue" [hint]="dateLabel(vm.tomorrowDate)" info="Citas CRED con estado programado para el día siguiente." />
+        <app-stat-card label="Confirmadas mañana" [value]="number(vm.tomorrowConfirmed)" [iconComponent]="icons.circleCheck" tone="green" [hint]="dateLabel(vm.tomorrowDate)" info="Pacientes que ya confirmaron intención de asistir mañana." />
+        <app-stat-card label="Rechazadas mañana" [value]="number(vm.tomorrowCannotAttend)" [iconComponent]="icons.circleX" tone="red" [hint]="dateLabel(vm.tomorrowDate)" info="Pacientes que indicaron que no podrán asistir a la cita de mañana." />
+        <app-stat-card label="Pendientes mañana" [value]="number(vm.tomorrowPending)" [iconComponent]="icons.timer" tone="amber" [hint]="dateLabel(vm.tomorrowDate)" info="Citas de mañana que todavía no tienen confirmación del paciente." />
       </section>
 
       <section class="dashboard-grid dashboard-grid--lists">
