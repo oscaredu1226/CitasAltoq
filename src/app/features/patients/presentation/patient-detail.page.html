@@ -21,7 +21,7 @@
       </section>
     } @else if (patient(); as p) {
       <app-page-title [title]="p.name" [subtitle]="'Paciente registrada en CRED · ID ' + shortId(p.id)">
-        <app-status-badge [value]="p.active" />
+        <app-status-badge kind="patientRoster" [value]="p.active" />
       </app-page-title>
 
       <section class="detail-layout">
@@ -87,7 +87,7 @@
         <aside class="quick-panel">
           <h2>Datos rápidos</h2>
           <span>Citas mostradas <strong>{{ appointments().length }}</strong></span>
-          <span>Estado <app-status-badge [value]="p.active" /></span>
+          <span>Estado <app-status-badge kind="patientRoster" [value]="p.active" /></span>
           <span>Última actualización <strong>{{ formatDate(p.updatedAt?.slice(0, 10)) }}</strong></span>
         </aside>
       </section>

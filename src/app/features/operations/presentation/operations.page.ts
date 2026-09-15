@@ -28,6 +28,7 @@ export class OperationsPage {
   readonly organizations = inject(OrganizationStore);
   readonly status = signal<OperationsStatus | null>(null);
   readonly audience = signal<ReminderAudience | null>(null);
+  readonly audienceMode = signal<'SELECTED' | 'ALL'>('SELECTED');
   readonly selectedIds = signal<Set<string>>(new Set());
   readonly establishmentNameFilter = signal('');
   readonly redFilter = signal('');
@@ -78,9 +79,11 @@ export class OperationsPage {
       .sort((a, b) => a.name.localeCompare(b.name, 'es-PE'));
   });
   readonly selectedWithoutDetails = computed(() => Math.max(0, this.selectedIds().size - this.selectedEstablishments().length));
-  readonly hasAudienceChanges = computed(() => !sameSet(this.selectedIds(), this.persistedIds()));
+  readonly persistedMode = signal<'SELECTED' | 'ALL'>('SELECTED');
+  readonly hasAudienceChanges = computed(() => this.audienceMode() !== this.persistedMode() || !sameSet(this.selectedIds(), this.persistedIds()));
   readonly canSelectFiltered = computed(() => this.filteredEstablishments().some((establishment) => !this.selectedIds().has(establishment.id)));
   readonly canDeselectAll = computed(() => this.selectedIds().size > 0);
+  readonly canEnableAll = computed(() => this.audienceMode() !== 'ALL' || this.selectedIds().size !== this.activeEstablishments().length);
   readonly canSave = computed(() => !this.saving()
     && this.hasAudienceChanges());
   readonly saveBlockedMessage = computed(() => {
@@ -108,7 +111,7 @@ export class OperationsPage {
       }
     });
     effect(() => {
-      if (this.audience()?.mode === 'ALL' && this.activeEstablishments().length > 0 && !this.hasAudienceChanges()) {
+      if (this.audienceMode() === 'ALL' && this.activeEstablishments().length > 0 && !this.hasAudienceChanges()) {
         this.applyAllAsSelected();
       }
     });
@@ -142,10 +145,8 @@ export class OperationsPage {
     } else {
       next.delete(id);
     }
-    this.selectedIds.set(next);
-    this.saveConfirmationOpen.set(false);
-    this.error.set('');
-    this.message.set('Cambio pendiente. Revisa y guarda el alcance para aplicarlo.');
+    this.audienceMode.set('SELECTED');
+    this.updateSelectedIds(next);
   }
 
   selectFilteredEstablishments(): void {
@@ -153,11 +154,18 @@ export class OperationsPage {
     for (const establishment of this.filteredEstablishments()) {
       next.add(establishment.id);
     }
+    this.audienceMode.set('SELECTED');
     this.updateSelectedIds(next);
   }
 
   deselectAllEstablishments(): void {
+    this.audienceMode.set('SELECTED');
     this.updateSelectedIds(new Set());
+  }
+
+  enableAllEstablishments(): void {
+    this.audienceMode.set('ALL');
+    this.updateSelectedIds(new Set(this.activeEstablishments().map((item) => item.id)));
   }
 
   save(): void {
@@ -187,10 +195,9 @@ export class OperationsPage {
       return;
     }
 
-    const request = {
-      mode: 'SELECTED' as const,
-      establishmentIds: Array.from(this.selectedIds(), (id) => Number(id)),
-    };
+    const request = this.audienceMode() === 'ALL'
+      ? { mode: 'ALL' as const, establishmentIds: [] }
+      : { mode: 'SELECTED' as const, establishmentIds: Array.from(this.selectedIds(), (id) => Number(id)) };
     this.saveConfirmationOpen.set(false);
     this.saving.set(true);
     this.error.set('');
@@ -198,7 +205,7 @@ export class OperationsPage {
     this.repo.updateReminderAudience(request).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (audience) => {
         this.applyAudience(audience);
-        this.message.set('Alcance de recordatorios actualizado correctamente.');
+        this.message.set('Configuración guardada. Las citas futuras elegibles se sincronizarán en segundo plano.');
       },
       error: (error) => this.error.set(this.audienceErrorMessage(error)),
     });
@@ -256,11 +263,13 @@ export class OperationsPage {
 
   private applyAudience(audience: ReminderAudience): void {
     this.audience.set(audience);
+    this.audienceMode.set(audience.mode);
     const selectedIds = audience.mode === 'ALL'
       ? new Set(this.activeEstablishments().map((item) => item.id))
       : new Set(audience.selectedEstablishments.filter((item) => item.active).map((item) => String(item.id)));
     this.selectedIds.set(selectedIds);
     this.persistedIds.set(new Set(selectedIds));
+    this.persistedMode.set(audience.mode);
   }
 
   private applyAllAsSelected(): void {
@@ -278,7 +287,7 @@ export class OperationsPage {
 
   private audienceErrorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse && error.status === 400) {
-      return 'La configuración enviada no es válida. En modo seleccionado debes elegir al menos un establecimiento activo, y en modo todos no se envían IDs.';
+      return 'La configuración enviada no es válida. Revisa que los establecimientos existan y estén activos. En modo todos no se envían IDs.';
     }
 
     if (error instanceof HttpErrorResponse && error.status === 403) {

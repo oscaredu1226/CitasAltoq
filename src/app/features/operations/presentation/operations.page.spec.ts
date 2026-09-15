@@ -219,6 +219,20 @@ describe('OperationsPage', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Todos los establecimientos');
   });
 
+  it('sends ALL without establishment IDs after explicit confirmation', () => {
+    configure(true);
+
+    fixture.componentInstance.enableAllEstablishments();
+    fixture.componentInstance.save();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('abrir el envío masivo');
+
+    fixture.componentInstance.confirmSave();
+
+    expect(repository.updateReminderAudience).toHaveBeenCalledWith({ mode: 'ALL', establishmentIds: [] });
+  });
+
   it('shows backend validation and permission errors', () => {
     configure(true);
     repository.updateReminderAudience.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 400 })));

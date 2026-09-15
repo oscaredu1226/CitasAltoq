@@ -61,13 +61,35 @@ async function mockMasterAdmin(page: Page): Promise<void> {
       } });
       return;
     }
+    if (path === '/api/me/mfa' && route.request().method() === 'GET') {
+      await route.fulfill({ json: {
+        available: true,
+        enrolled: true,
+        setupPending: false,
+      } });
+      return;
+    }
+    if (path === '/api/me/mfa/verify' && route.request().method() === 'POST') {
+      await route.fulfill({ json: {
+        mfaToken: 'visual-mfa-token',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      } });
+      return;
+    }
     await route.fulfill({ status: 404, json: {} });
   });
+}
+
+async function unlockAudience(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Desbloquear configuración' }).click();
+  await page.getByLabel('Código de Google Authenticator').fill('123456');
+  await page.getByRole('button', { name: 'Verificar' }).click();
 }
 
 test('master admin configures reminder audience without responsive overflow', async ({ page }) => {
   await mockMasterAdmin(page);
   await page.goto('/configuracion');
+  await unlockAudience(page);
   await expect(page.getByRole('heading', { name: 'Establecimientos habilitados para recordatorios' })).toBeVisible();
   await expect(page.getByText('establecimiento habilitado', { exact: true })).toBeVisible();
   await expect(page.getByText('Centro de Salud Mariano Melgar')).toBeVisible();
@@ -76,6 +98,7 @@ test('master admin configures reminder audience without responsive overflow', as
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
+  await unlockAudience(page);
   await expect(page.getByRole('heading', { name: 'Establecimientos habilitados para recordatorios' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/reminder-audience-mobile.png', fullPage: true });

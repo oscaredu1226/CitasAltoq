@@ -35,6 +35,10 @@
             <svg lucideCircleCheck size="16" aria-hidden="true"></svg>
             Seleccionar visibles
           </button>
+          <button class="button" type="button" [disabled]="!canEnableAll()" (click)="enableAllEstablishments()">
+            <svg lucideCircleCheck size="16" aria-hidden="true"></svg>
+            Habilitar todos
+          </button>
           <button class="button" type="button" [disabled]="!canDeselectAll()" (click)="deselectAllEstablishments()">
             <svg lucideCircleX size="16" aria-hidden="true"></svg>
             Deseleccionar todos
@@ -114,7 +118,11 @@
           <section class="modal audience-confirmation" role="dialog" aria-modal="true" aria-label="Confirmar alcance de recordatorios">
             <span class="audience-kicker"><svg lucideShieldCheck size="17" aria-hidden="true"></svg> Revisión final</span>
             <h2>Confirmar establecimientos habilitados</h2>
-            @if (selectedIds().size) {
+            @if (audienceMode() === 'ALL') {
+              <p class="info-note info-note--warning">
+                Todos los establecimientos activos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp. Confirma solo si deseas abrir el envío masivo.
+              </p>
+            } @else if (selectedIds().size) {
               <p class="info-note">
                 Estos establecimientos quedarán autorizados para generar y enviar recordatorios CRED por WhatsApp.
               </p>
@@ -125,7 +133,7 @@
             }
             <div class="confirmation-total">
               <strong>{{ selectedIds().size }}</strong>
-              <span>{{ selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados' }}.</span>
+              <span>{{ audienceMode() === 'ALL' ? 'establecimientos activos habilitados en modo todos' : (selectedIds().size === 1 ? 'establecimiento seleccionado' : 'establecimientos seleccionados') }}.</span>
             </div>
             @if (selectedIds().size) {
               <div class="confirmation-list" aria-label="Establecimientos seleccionados">

@@ -1,12 +1,14 @@
-    <app-page-title title="Nueva importación" subtitle="Selecciona un archivo XLSX completo; el sistema reconocerá la Red, Microred y Establecimiento desde los datos." />
+    <app-page-title title="Nueva importación" subtitle="Selecciona un archivo XLSX completo; el backend validará encabezados, hojas y estructura." />
     <app-alert title="Importación" [message]="message()" [requestId]="requestId()" [tone]="error() ? 'red' : 'blue'" />
 
     <section class="stepper" aria-label="Pasos de importación">
       <span [class.is-done]="file()">1 Archivo</span>
-      <span [class.is-done]="preview()">2 Vista previa</span>
-      <span [class.is-done]="confirmOpen() || acceptedBatchId()">3 Confirmar</span>
-      <span [class.is-done]="state() === 'processing' || state() === 'completed'">4 Procesamiento</span>
-      <span [class.is-done]="state() === 'completed'">5 Resultado</span>
+      <span [class.is-done]="scopes()">2 Establecimientos</span>
+      <span [class.is-done]="scopes()">3 Alcance</span>
+      <span [class.is-done]="preview()">4 Vista previa</span>
+      <span [class.is-done]="confirmOpen() || acceptedBatchId()">5 Confirmar</span>
+      <span [class.is-done]="state() === 'processing' || state() === 'completed'">6 Procesamiento</span>
+      <span [class.is-done]="state() === 'completed'">7 Resultado</span>
     </section>
 
     <section class="panel upload-panel">
@@ -14,9 +16,9 @@
         <input type="file" accept=".xlsx" (change)="selectFile($event)" />
         <svg lucideCloudUpload size="34" aria-hidden="true"></svg>
         <strong>{{ file()?.name || 'Seleccionar archivo XLSX' }}</strong>
-        <span>No se aceptan CSV. El archivo debe contener toda la data CRED disponible.</span>
+        <span>Solo se aceptan archivos .xlsx. La validación estructural la realiza el servidor.</span>
       </label>
-      <p class="info-note">No necesitas seleccionar Red, Microred ni Establecimiento. La vista previa se genera leyendo todo el Excel y detectando el ámbito desde cada fila.</p>
+      <p class="info-note">No importa el nombre de la hoja, tabla u orden de columnas. El sistema buscará los encabezados normalizados dentro del XLSX.</p>
       <div class="import-state" [class.import-state--error]="state() === 'failed'">
         @if (state() === 'failed') {
           <svg lucideTriangleAlert size="18" aria-hidden="true"></svg>
@@ -30,28 +32,74 @@
           <svg lucideArrowLeft size="16" aria-hidden="true"></svg>
           Cancelar
         </a>
-        <button class="button button--primary" type="button" (click)="analyze()" [disabled]="!canAnalyze()">Analizar archivo</button>
+        <button class="button button--primary" type="button" (click)="discoverScopes()" [disabled]="!canDiscoverScopes()">Analizar establecimientos</button>
+        <button class="button button--primary" type="button" (click)="previewImport()" [disabled]="!canPreview()">Ejecutar vista previa</button>
         <button class="button button--primary" type="button" (click)="confirmOpen.set(true)" [disabled]="!canApply()">Aplicar importación</button>
       </div>
-      @if (analyzeBlockedMessage() || applyBlockedMessage()) {
-        <p class="validation-note">{{ analyzeBlockedMessage() || applyBlockedMessage() }}</p>
+      @if (analyzeBlockedMessage() || previewBlockedMessage() || applyBlockedMessage()) {
+        <p class="validation-note">{{ analyzeBlockedMessage() || previewBlockedMessage() || applyBlockedMessage() }}</p>
       }
     </section>
 
+    @if (scopes(); as s) {
+      <section class="panel scope-panel">
+        <div class="panel__header">
+          <div>
+            <h2>Alcance de importación</h2>
+            <p>{{ number(s.totalDataRows) }} filas detectadas en el archivo.</p>
+          </div>
+          <strong>{{ selectedScopeText() }}</strong>
+        </div>
+
+        <div class="scope-mode">
+          <button class="button" type="button" [class.button--primary]="scopeMode() === 'ALL'" (click)="selectAllScope()">
+            Todos los establecimientos
+          </button>
+          <span>o selecciona un establecimiento específico en la jerarquía.</span>
+        </div>
+
+        <div class="scope-tree" aria-label="Establecimientos detectados">
+          @for (red of s.reds; track red.name) {
+            <section class="scope-red">
+              <h3>{{ red.name }} <span>{{ number(red.rowCount) }} filas</span></h3>
+              @for (microred of red.microreds ?? []; track microred.name) {
+                <article class="scope-microred">
+                  <h4>{{ microred.name }} <span>{{ number(microred.rowCount) }} filas</span></h4>
+                  <div class="scope-establishments">
+                    @for (establishment of microred.establishments ?? []; track establishment.name) {
+                      <button
+                        class="scope-establishment"
+                        type="button"
+                        [class.is-selected]="selectedScope()?.establishment === establishment.name && selectedScope()?.microred === microred.name && selectedScope()?.red === red.name"
+                        (click)="selectEstablishmentScope(red.name, microred.name, establishment)"
+                      >
+                        <strong>{{ establishment.name }}</strong>
+                        <span>{{ number(establishment.rowCount) }} filas</span>
+                      </button>
+                    }
+                  </div>
+                </article>
+              }
+            </section>
+          }
+        </div>
+      </section>
+    }
+
     @if (preview(); as p) {
       <section class="stat-grid">
-        <app-stat-card label="Filas totales" [value]="p.totalDataRows" [iconComponent]="icons.file" tone="blue" />
-        <app-stat-card label="Filas reconocidas" [value]="p.rowsInScope" [iconComponent]="icons.check" tone="green" />
-        <app-stat-card label="Sin reconocer" [value]="p.rowsExcludedByScope" [iconComponent]="icons.warning" tone="amber" />
-        <app-stat-card label="Procesables" [value]="p.processableSourceRows" [iconComponent]="icons.check" tone="green" />
-        <app-stat-card label="Errores" [value]="p.sourceErrorRows" [iconComponent]="icons.warning" tone="red" />
-        <app-stat-card label="Advertencias" [value]="p.sourceWarningRows" [iconComponent]="icons.warning" tone="amber" />
+        <app-stat-card label="Filas del archivo" [value]="number(p.totalDataRows)" [iconComponent]="icons.file" tone="blue" info="Total de filas de datos encontradas en el XLSX." />
+        <app-stat-card label="Filas del alcance" [value]="number(p.rowsInScope)" [iconComponent]="icons.check" tone="green" info="Filas que coinciden con el alcance seleccionado." />
+        <app-stat-card label="Fuera del alcance" [value]="number(p.rowsExcludedByScope)" [iconComponent]="icons.warning" tone="amber" info="Filas válidas del archivo que no se importarán por el alcance elegido." />
+        <app-stat-card label="Procesables" [value]="number(p.processableSourceRows)" [iconComponent]="icons.check" tone="green" info="Filas que pueden aplicarse aunque existan advertencias no bloqueantes." />
+        <app-stat-card label="Errores" [value]="number(p.sourceErrorRows)" [iconComponent]="icons.warning" tone="red" info="Filas con errores que no pueden aplicarse." />
+        <app-stat-card label="Advertencias" [value]="number(p.sourceWarningRows)" [iconComponent]="icons.warning" tone="amber" info="Observaciones no bloqueantes que debes revisar antes de confirmar." />
       </section>
       <section class="dashboard-grid">
-        <article class="panel"><h2>Pacientes</h2><div class="metric-list"><span>Nuevos <strong>{{ p.newPatients }}</strong></span><span>Actualizados <strong>{{ p.updatedPatients }}</strong></span><span>Sin cambios <strong>{{ p.unchangedPatients }}</strong></span></div></article>
-        <article class="panel"><h2>Contactos</h2><div class="metric-list"><span>Nuevos <strong>{{ p.newContacts }}</strong></span><span>Reutilizados <strong>{{ p.reusedContacts }}</strong></span><span>Sin apoderado utilizable <strong>{{ p.patientsWithoutUsableGuardian }}</strong></span></div></article>
-        <article class="panel"><h2>Citas</h2><div class="metric-list"><span>Nuevas <strong>{{ p.newAppointments }}</strong></span><span>Reprogramadas <strong>{{ p.rescheduledAppointments }}</strong></span><span>Sin cambios <strong>{{ p.unchangedAppointments }}</strong></span></div></article>
-        <article class="panel"><h2>Revisión</h2><div class="metric-list"><span>Requieren revisión <strong>{{ p.reviewRequiredRows }}</strong></span><span>Conflictos <strong>{{ p.conflictRows }}</strong></span></div></article>
+        <article class="panel"><h2>Pacientes</h2><div class="metric-list"><span>Nuevos <strong>{{ number(p.newPatients) }}</strong></span><span>Actualizados <strong>{{ number(p.updatedPatients) }}</strong></span><span>Sin cambios <strong>{{ number(p.unchangedPatients) }}</strong></span></div></article>
+        <article class="panel"><h2>Contactos</h2><div class="metric-list"><span>Nuevos <strong>{{ number(p.newContacts) }}</strong></span><span>Reutilizados <strong>{{ number(p.reusedContacts) }}</strong></span></div></article>
+        <article class="panel"><h2>Citas</h2><div class="metric-list"><span>Nuevas <strong>{{ number(p.newAppointments) }}</strong></span><span>Reprogramadas <strong>{{ number(p.rescheduledAppointments) }}</strong></span><span>Sin cambios <strong>{{ number(p.unchangedAppointments) }}</strong></span></div></article>
+        <article class="panel"><h2>Revisión</h2><div class="metric-list"><span>Requieren revisión <strong>{{ number(p.reviewRequiredRows) }}</strong></span><span>Conflictos <strong>{{ number(p.conflictRows) }}</strong></span></div></article>
       </section>
       <article class="panel">
         <div class="panel__header"><h2>Detalles de incidencias</h2></div>
@@ -60,7 +108,13 @@
             <thead><tr><th>Fila</th><th>Campo</th><th>Severidad</th><th>Código</th><th>Descripción</th></tr></thead>
             <tbody>
               @for (issue of p.issues; track issue.sourceRowNumber + issue.field + issue.code) {
-                <tr><td>{{ issue.sourceRowNumber }}</td><td>{{ issue.field }}</td><td>{{ issue.severity }}</td><td>{{ issue.code }}</td><td>{{ issue.message }}</td></tr>
+                <tr>
+                  <td>{{ issue.sourceRowNumber }}</td>
+                  <td>{{ issue.field }}</td>
+                  <td><span class="badge" [class.badge--amber]="issue.severity === 'WARNING'" [class.badge--red]="issue.severity === 'ERROR'">{{ issue.severity === 'WARNING' ? 'Advertencia' : 'Error' }}</span></td>
+                  <td>{{ issue.code }}</td>
+                  <td>{{ issueMessage(issue) }}</td>
+                </tr>
               }
             </tbody>
           </table>
@@ -75,7 +129,18 @@
       <div class="modal-backdrop" role="presentation">
         <section class="modal" role="dialog" aria-modal="true" aria-label="Confirmar importación">
           <h2>Confirmar importación</h2>
-          <p class="info-note">Se aplicarán los cambios identificados durante la vista previa. Las citas reprogramadas conservarán su historial.</p>
+          <p class="info-note">Se aplicarán los cambios identificados durante la vista previa para: <strong>{{ selectedScopeText() }}</strong>.</p>
+          <label class="danger-checkbox">
+            <input
+              type="checkbox"
+              [checked]="authoritativeRoster()"
+              (change)="authoritativeRoster.set($any($event.target).checked)"
+            />
+            <span>
+              <strong>Este archivo contiene el padrón completo del alcance seleccionado.</strong>
+              <small>Los pacientes que no aparezcan en este archivo podrán marcarse como fuera del padrón. No actives esta opción para archivos parciales.</small>
+            </span>
+          </label>
           <div class="modal__actions">
             <button class="button" type="button" (click)="confirmOpen.set(false)">Volver</button>
             <button class="button button--primary" type="button" (click)="apply()">Confirmar importación</button>
@@ -90,8 +155,30 @@
           <span class="import-loading__spinner" aria-hidden="true"></span>
           <h2>{{ stateText() }}</h2>
           <p>{{ loadingHint() }}</p>
-          <div class="import-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+          @if (batch(); as b) {
+            <div class="progress-box">
+              <div class="progress-header">
+                <span><app-status-badge kind="import" [value]="b.status" /></span>
+                <strong>{{ progressPercent() }}%</strong>
+              </div>
+              <div class="progress-bar" aria-label="Progreso de importación">
+                <span [style.width.%]="progressPercent()"></span>
+              </div>
+              <p>{{ batchProcessedText(b) }}</p>
+              <div class="progress-counters">
+                <span>En alcance <strong>{{ number(b.rowsInScope) }}</strong></span>
+                <span>Fuera <strong>{{ number(b.rowsExcludedByScope) }}</strong></span>
+                <span>Pacientes nuevos <strong>{{ number(b.newPatients) }}</strong></span>
+                <span>Citas nuevas <strong>{{ number(b.newAppointments) }}</strong></span>
+                <span>Errores <strong>{{ number(b.errorRows) }}</strong></span>
+              </div>
+              @if (b.errorMessage) {
+                <p class="info-note info-note--warning">{{ b.errorMessage }}</p>
+              }
+            </div>
+          } @else {
+            <div class="import-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+          }
         </section>
       </div>
     }
-  

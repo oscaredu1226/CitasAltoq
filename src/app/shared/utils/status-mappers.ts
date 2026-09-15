@@ -43,7 +43,16 @@ const importStatus: Record<string, StatusView> = {
   FAILED: { label: 'Fallida', tone: 'red', description: 'La importación no pudo completarse y requiere revisión.' },
 };
 
+const patientRoster: Record<string, StatusView> = {
+  true: { label: 'En padrón', tone: 'green', description: 'Indica si el paciente permanece en el último padrón completo importado.' },
+  false: { label: 'Fuera del padrón', tone: 'gray', description: 'Indica que el paciente no aparece en el último padrón completo importado. No significa que reciba o deje de recibir WhatsApp por sí solo.' },
+};
+
 export function statusView(kind: string, value: string | boolean | null | undefined): StatusView {
+  if (kind === 'patientRoster' && typeof value === 'boolean') {
+    return patientRoster[String(value)];
+  }
+
   if (typeof value === 'boolean') {
     return value
       ? { label: 'Activo', tone: 'green', description: 'Disponible y habilitado para operar.' }
@@ -60,9 +69,12 @@ export function statusView(kind: string, value: string | boolean | null | undefi
           ? consent
           : kind === 'import'
             ? importStatus
-            : {};
+            : kind === 'patientRoster'
+              ? patientRoster
+              : {};
 
-  return (value && lookup[value]) || { label: value || '-', tone: 'gray', description: value ? 'Estado recibido desde el sistema.' : undefined };
+  const key = typeof value === 'string' ? value : String(value);
+  return (value !== undefined && value !== null && lookup[key]) || { label: value || '-', tone: 'gray', description: value ? 'Estado recibido desde el sistema.' : undefined };
 }
 
 export function purposeLabel(value: string | null | undefined): string {

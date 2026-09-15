@@ -27,11 +27,24 @@
       </section>
       <article class="panel">
         <h2>Resumen de procesamiento</h2>
+        <div class="detail-progress">
+          <div class="progress-header">
+            <span>{{ b.processedRows || 0 }} de {{ b.totalRows }} filas</span>
+            <strong>{{ progressPercent(b) }}%</strong>
+          </div>
+          <div class="progress-bar" aria-label="Progreso de importación">
+            <span [style.width.%]="progressPercent(b)"></span>
+          </div>
+        </div>
         <div class="technical-grid">
           <span><small>Inicio</small><strong>{{ formatDateTime(b.startedAt) }}</strong></span>
           <span><small>Fin</small><strong>{{ formatDateTime(b.finishedAt) }}</strong></span>
           <span class="technical-grid__wide"><small>Ámbito detectado</small><strong>{{ scopeText(b.scope) }}</strong></span>
+          <span class="technical-grid__wide"><small>Padrón autoritativo</small><strong>{{ b.authoritativeRoster ? 'Sí, archivo completo del alcance' : 'No, archivo parcial o no declarado completo' }}</strong></span>
           <span class="technical-grid__wide"><small>Resultado</small><strong>{{ importResult(b) }}</strong></span>
+          @if (b.errorMessage) {
+            <span class="technical-grid__wide"><small>Mensaje</small><strong>{{ b.errorMessage }}</strong></span>
+          }
         </div>
       </article>
       <a class="button" routerLink="/importaciones">

@@ -8,8 +8,8 @@
       <label>Estado
         <select formControlName="active">
           <option value="">Todos</option>
-          <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
+          <option value="true">En padrón</option>
+          <option value="false">Fuera del padrón</option>
         </select>
       </label>
       @if (admin()) {
@@ -72,7 +72,7 @@
                   <td>{{ patient.establishment }}</td>
                   <td>{{ patient.microNetwork || '-' }}</td>
                   <td>{{ patient.network }}</td>
-                  <td><app-status-badge [value]="patient.active" /></td>
+                  <td><app-status-badge kind="patientRoster" [value]="patient.active" /></td>
                   <td>
                     @if (patient.guardianContactId) {
                       <span class="badge badge--blue">Contacto vinculado</span>

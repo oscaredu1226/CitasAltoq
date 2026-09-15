@@ -67,4 +67,16 @@ export class ImportDetailPage {
 
     return 'La importación está siendo procesada por el servidor.';
   }
+
+  progressPercent(batch: ImportBatch): number {
+    if (typeof batch.progressPercent === 'number') {
+      return Math.min(100, Math.max(0, batch.progressPercent));
+    }
+
+    if (!batch.totalRows || !batch.processedRows) {
+      return 0;
+    }
+
+    return Math.round((batch.processedRows / batch.totalRows) * 100);
+  }
 }

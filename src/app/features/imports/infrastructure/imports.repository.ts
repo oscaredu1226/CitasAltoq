@@ -22,6 +22,12 @@ export interface ImportScope {
   establishment: string | null;
 }
 
+export interface ImportScopeSelection {
+  red?: string | null;
+  microred?: string | null;
+  establishment?: string | null;
+}
+
 export interface ImportIssue {
   sourceRowNumber: number;
   field: string;
@@ -63,8 +69,11 @@ export interface ImportBatch {
   fileChecksum: string;
   scopeFingerprint: string;
   scope: ImportScope;
+  authoritativeRoster?: boolean;
   status: string;
   totalRows: number;
+  processedRows?: number;
+  progressPercent?: number;
   rowsInScope: number;
   rowsExcludedByScope: number;
   newPatients: number;
@@ -86,6 +95,7 @@ export interface ImportAccepted {
   fileChecksum: string;
   scopeFingerprint: string;
   scope: ImportScope;
+  authoritativeRoster: boolean;
 }
 
 export type ImportUploadEvent =
@@ -114,18 +124,19 @@ export class ImportsRepository {
     return this.http.post<ImportScopesResponse>(apiUrl(this.config, '/api/cred/imports/scopes'), formData);
   }
 
-  preview(file: File): Observable<ImportPreview> {
-    return this.previewEvents(file).pipe(
+  preview(file: File, scope?: ImportScopeSelection): Observable<ImportPreview> {
+    return this.previewEvents(file, scope).pipe(
       filter((event): event is { type: 'response'; preview: ImportPreview } => event.type === 'response'),
       map((event) => event.preview),
     );
   }
 
-  previewEvents(file: File): Observable<ImportUploadEvent> {
+  previewEvents(file: File, scope?: ImportScopeSelection): Observable<ImportUploadEvent> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<ImportPreview>(apiUrl(this.config, '/api/cred/imports/preview'), formData, {
       observe: 'events',
+      params: paramsFrom(scope ?? {}),
       reportProgress: true,
     }).pipe(
       map((event: HttpEvent<ImportPreview>) => {
@@ -148,17 +159,19 @@ export class ImportsRepository {
     );
   }
 
-  apply(file: File, preview: ImportPreview): Observable<ImportAccepted> {
+  apply(file: File, preview: ImportPreview, scope: ImportScopeSelection = {}, authoritativeRoster = false): Observable<ImportAccepted> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('expectedChecksum', preview.fileChecksum);
     formData.append('expectedScopeFingerprint', preview.scopeFingerprint);
-    return this.http.post<ImportAccepted>(apiUrl(this.config, '/api/cred/imports/apply'), formData);
+    return this.http.post<ImportAccepted>(apiUrl(this.config, '/api/cred/imports/apply'), formData, {
+      params: paramsFrom({ ...scope, authoritativeRoster }),
+    });
   }
 }
 
-function paramsFrom(filters: Record<string, string | number | boolean | null | undefined>): HttpParams {
-  return Object.entries(filters).reduce((params, [key, value]) => {
+function paramsFrom(filters: object): HttpParams {
+  return Object.entries(filters as Record<string, string | number | boolean | null | undefined>).reduce((params, [key, value]) => {
     if (value === undefined || value === null || value === '') {
       return params;
     }

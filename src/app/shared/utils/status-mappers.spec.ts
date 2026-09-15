@@ -22,4 +22,9 @@ describe('status mappers', () => {
     expect(statusView('confirmation', 'CONFIRMED').description).toContain('No equivale a atención realizada');
     expect(statusView('reminder', 'FAILED').description).toContain('recordatorio');
   });
+
+  it('labels patient roster membership without using active/inactive wording', () => {
+    expect(statusView('patientRoster', true)).toEqual(expect.objectContaining({ label: 'En padrón', tone: 'green' }));
+    expect(statusView('patientRoster', false)).toEqual(expect.objectContaining({ label: 'Fuera del padrón', tone: 'gray' }));
+  });
 });
