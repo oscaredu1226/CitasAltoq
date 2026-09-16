@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { LucideCircleCheck, LucideCircleX, LucideMail, LucideSave, LucideSend, LucideShieldCheck, LucideTrash2 } from '@lucide/angular';
-import { finalize, forkJoin } from 'rxjs';
+import { catchError, finalize, forkJoin, map, Observable, of } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { isAdmin, isMasterAdmin } from '../../../core/auth/auth.models';
 import { mapApiError } from '../../../core/http/error-message.mapper';
@@ -51,6 +51,7 @@ export class OperationsPage {
   readonly selectedReportUserId = signal('');
   readonly newReportEmail = signal('');
   readonly reportLoading = signal(false);
+  readonly reportLoadError = signal('');
   readonly reportSaving = signal(false);
   readonly deleteConfirmationId = signal('');
   readonly adminUser = computed(() => isAdmin(this.auth.session.user()));
@@ -133,6 +134,7 @@ export class OperationsPage {
     this.selectedReportEstablishmentId()
       && this.selectedReportUserId()
       && validEmail(this.newReportEmail())
+      && !this.reportLoadError()
       && !this.reportSaving(),
   ));
   readonly saveBlockedMessage = computed(() => {
@@ -364,17 +366,32 @@ export class OperationsPage {
       });
   }
 
+  reloadReportConfiguration(): void {
+    this.loadReportConfiguration();
+  }
+
   private loadReportConfiguration(): void {
     this.reportLoading.set(true);
+    this.reportLoadError.set('');
     forkJoin({
-      subscriptions: this.repo.dailyReportSubscriptions(),
-      users: this.repo.dailyReportCandidates(),
+      subscriptions: captureLoad(this.repo.dailyReportSubscriptions()),
+      users: captureLoad(this.repo.dailyReportCandidates()),
     }).pipe(finalize(() => this.reportLoading.set(false))).subscribe({
       next: ({ subscriptions, users }) => {
-        this.reportSubscriptions.set(subscriptions);
-        this.reportUsers.set(users);
+        if (subscriptions.ok) {
+          this.reportSubscriptions.set(subscriptions.value);
+        }
+        if (users.ok) {
+          this.reportUsers.set(users.value);
+        }
+
+        const errors = [subscriptions, users]
+          .filter((result): result is LoadFailure => !result.ok)
+          .map((result) => mapApiError(result.error).message);
+        if (errors.length > 0) {
+          this.reportLoadError.set(`No se pudo cargar toda la configuración de reportes. ${errors.join(' ')}`);
+        }
       },
-      error: (error) => this.error.set(mapApiError(error).message),
     });
   }
 
@@ -498,6 +515,16 @@ function uniqueOptions(options: { id: string; name: string }[]): { id: string; n
 
 function sameSet(left: Set<string>, right: Set<string>): boolean {
   return left.size === right.size && Array.from(left).every((value) => right.has(value));
+}
+
+type LoadResult<T> = { ok: true; value: T } | LoadFailure;
+type LoadFailure = { ok: false; error: unknown };
+
+function captureLoad<T>(source: Observable<T>): Observable<LoadResult<T>> {
+  return source.pipe(
+    map((value) => ({ ok: true as const, value })),
+    catchError((error: unknown) => of({ ok: false as const, error })),
+  );
 }
 
 function validEmail(value: string): boolean {

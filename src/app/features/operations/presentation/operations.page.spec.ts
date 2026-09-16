@@ -7,7 +7,7 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
 import { CurrentUser } from '../../../core/auth/auth.models';
 import { MfaStore } from '../../../core/mfa/mfa.store';
 import { OrganizationStore } from '../../organization/application/organization.store';
-import { DailyReportCandidate, OperationsRepository, ReminderAudience } from '../infrastructure/operations.repository';
+import { DailyReportCandidate, DailyReportSubscription, OperationsRepository, ReminderAudience } from '../infrastructure/operations.repository';
 import { OperationsPage } from './operations.page';
 
 const status = {
@@ -118,13 +118,15 @@ describe('OperationsPage', () => {
     reminderAudienceResult: Observable<ReminderAudience> = of(audience),
     mfaElevated = true,
     candidates: DailyReportCandidate[] = [],
+    subscriptionsResult: Observable<DailyReportSubscription[]> = of([]),
+    candidatesResult: Observable<DailyReportCandidate[]> = of(candidates),
   ): void {
     repository = {
       status: vi.fn(() => of(status)),
       reminderAudience: vi.fn(() => reminderAudienceResult),
       updateReminderAudience: vi.fn(() => of({ ...audience, updatedAt: '2026-08-30T23:30:00Z' })),
-      dailyReportSubscriptions: vi.fn(() => of([])),
-      dailyReportCandidates: vi.fn(() => of(candidates)),
+      dailyReportSubscriptions: vi.fn(() => subscriptionsResult),
+      dailyReportCandidates: vi.fn(() => candidatesResult),
       createDailyReportSubscription: vi.fn(),
       updateDailyReportSubscription: vi.fn(),
       deleteDailyReportSubscription: vi.fn(),
@@ -338,5 +340,50 @@ describe('OperationsPage', () => {
     expect(userOptions).toContain('Ana Operadora');
     expect(userOptions).toContain('Beatriz Operadora');
     expect(userOptions).not.toContain('Carlos Operador');
+  });
+
+  it('keeps successfully loaded candidates visible when subscriptions fail to load', () => {
+    configure(
+      true,
+      selectedAudience,
+      of(selectedAudience),
+      true,
+      reportCandidates,
+      throwError(() => new HttpErrorResponse({ status: 503 })),
+    );
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.report-load-error')?.textContent).toContain('No se pudo cargar toda la configuración');
+    expect(element.querySelector('.report-establishment-select')?.textContent).toContain('Centro de Salud Mariano Melgar');
+    expect(element.textContent).not.toContain('Todavía no hay destinatarios configurados');
+    expect(fixture.componentInstance.canAddReport()).toBe(false);
+  });
+
+  it('excludes configured users without hiding other active users from the same establishment', () => {
+    const configured: DailyReportSubscription = {
+      id: 'report-1',
+      userId: 'operator-1',
+      establishmentId: 1,
+      recipientEmail: 'reportes@edifmisti.pe',
+      active: true,
+      userDisplayName: 'Ana Operadora',
+      userEmail: 'ana@edifmisti.pe',
+      establishmentName: 'Centro de Salud Mariano Melgar',
+      microredName: 'Microred Mariano Melgar',
+      redName: 'Red Arequipa Caylloma',
+      createdAt: '2026-09-15T12:00:00Z',
+      updatedAt: '2026-09-15T12:00:00Z',
+    };
+    configure(true, selectedAudience, of(selectedAudience), true, reportCandidates, of([configured]));
+    fixture.componentInstance.selectReportEstablishment('1');
+    fixture.detectChanges();
+    const userOptions = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLOptionElement>('.report-user-select option'),
+      (option) => option.textContent,
+    ).join(' ');
+
+    expect(userOptions).not.toContain('Ana Operadora');
+    expect(userOptions).toContain('Beatriz Operadora');
   });
 });

@@ -305,6 +305,17 @@
   color: var(--color-muted);
 }
 
+.report-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 22px;
+  color: #9f1239;
+  background: #fff1f2;
+  border-bottom: 1px solid #fecdd3;
+}
+
 .confirmation-total {
   display: flex;
   align-items: baseline;
@@ -374,5 +385,10 @@
 
   .report-actions {
     justify-content: flex-end;
+  }
+
+  .report-load-error {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

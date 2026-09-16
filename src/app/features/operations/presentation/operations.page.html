@@ -170,6 +170,12 @@
         @if (reportLoading()) {
           <div class="audience-loading"><span class="spinner"></span> Cargando destinatarios...</div>
         } @else {
+          @if (reportLoadError()) {
+            <div class="report-load-error" role="alert">
+              <span>{{ reportLoadError() }}</span>
+              <button class="button" type="button" (click)="reloadReportConfiguration()">Reintentar</button>
+            </div>
+          }
           <div class="report-form">
             <label>
               Establecimiento
@@ -268,7 +274,9 @@
                 }
               </div>
             } @empty {
-              <p class="report-empty">Todavía no hay destinatarios configurados.</p>
+              @if (!reportLoadError()) {
+                <p class="report-empty">Todavía no hay destinatarios configurados.</p>
+              }
             }
           </div>
         }
