@@ -172,11 +172,31 @@
         } @else {
           <div class="report-form">
             <label>
-              Usuario del establecimiento
-              <select [value]="selectedReportUserId()" (change)="selectReportUser($any($event.target).value)">
-                <option value="">Selecciona un usuario</option>
-                @for (user of availableReportUsers(); track user.userId) {
-                  <option [value]="user.userId">{{ user.userDisplayName || user.userEmail }} · {{ user.establishmentName }}</option>
+              Establecimiento
+              <select
+                class="report-establishment-select"
+                [value]="selectedReportEstablishmentId()"
+                (change)="selectReportEstablishment($any($event.target).value)"
+              >
+                <option value="">Selecciona un establecimiento</option>
+                @for (establishment of availableReportEstablishments(); track establishment.id) {
+                  <option [value]="establishment.id">
+                    {{ establishment.name }} ({{ establishment.userCount }} {{ establishment.userCount === 1 ? 'cuenta activa' : 'cuentas activas' }})
+                  </option>
+                }
+              </select>
+            </label>
+            <label>
+              Usuario activo
+              <select
+                class="report-user-select"
+                [value]="selectedReportUserId()"
+                [disabled]="!selectedReportEstablishmentId()"
+                (change)="selectReportUser($any($event.target).value)"
+              >
+                <option value="">{{ selectedReportEstablishmentId() ? 'Selecciona un usuario' : 'Primero selecciona un establecimiento' }}</option>
+                @for (user of availableReportUsersForEstablishment(); track user.userId) {
+                  <option [value]="user.userId">{{ user.userDisplayName || user.userEmail }} · {{ user.userEmail }}</option>
                 }
               </select>
             </label>

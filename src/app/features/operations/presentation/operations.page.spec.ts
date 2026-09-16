@@ -7,7 +7,7 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
 import { CurrentUser } from '../../../core/auth/auth.models';
 import { MfaStore } from '../../../core/mfa/mfa.store';
 import { OrganizationStore } from '../../organization/application/organization.store';
-import { OperationsRepository, ReminderAudience } from '../infrastructure/operations.repository';
+import { DailyReportCandidate, OperationsRepository, ReminderAudience } from '../infrastructure/operations.repository';
 import { OperationsPage } from './operations.page';
 
 const status = {
@@ -56,6 +56,36 @@ const selectedAudience: ReminderAudience = {
   updatedAt: '2026-08-30T23:00:00Z',
 };
 
+const reportCandidates: DailyReportCandidate[] = [
+  {
+    userId: 'operator-1',
+    userDisplayName: 'Ana Operadora',
+    userEmail: 'ana@edifmisti.pe',
+    establishmentId: 1,
+    establishmentName: 'Centro de Salud Mariano Melgar',
+    microredName: 'Microred Mariano Melgar',
+    redName: 'Red Arequipa Caylloma',
+  },
+  {
+    userId: 'operator-2',
+    userDisplayName: 'Beatriz Operadora',
+    userEmail: 'beatriz@edifmisti.pe',
+    establishmentId: 1,
+    establishmentName: 'Centro de Salud Mariano Melgar',
+    microredName: 'Microred Mariano Melgar',
+    redName: 'Red Arequipa Caylloma',
+  },
+  {
+    userId: 'operator-3',
+    userDisplayName: 'Carlos Operador',
+    userEmail: 'carlos@edifmisti.pe',
+    establishmentId: 2,
+    establishmentName: 'Puesto de Salud Alto Selva Alegre',
+    microredName: 'Microred Alto Selva Alegre',
+    redName: 'Red Arequipa Norte',
+  },
+];
+
 function user(masterAdmin: boolean): CurrentUser {
   return {
     id: 'user-1',
@@ -87,13 +117,14 @@ describe('OperationsPage', () => {
     audience: ReminderAudience = selectedAudience,
     reminderAudienceResult: Observable<ReminderAudience> = of(audience),
     mfaElevated = true,
+    candidates: DailyReportCandidate[] = [],
   ): void {
     repository = {
       status: vi.fn(() => of(status)),
       reminderAudience: vi.fn(() => reminderAudienceResult),
       updateReminderAudience: vi.fn(() => of({ ...audience, updatedAt: '2026-08-30T23:30:00Z' })),
       dailyReportSubscriptions: vi.fn(() => of([])),
-      dailyReportCandidates: vi.fn(() => of([])),
+      dailyReportCandidates: vi.fn(() => of(candidates)),
       createDailyReportSubscription: vi.fn(),
       updateDailyReportSubscription: vi.fn(),
       deleteDailyReportSubscription: vi.fn(),
@@ -283,5 +314,29 @@ describe('OperationsPage', () => {
 
     expect(repository.sendDailyReportNow).toHaveBeenCalledWith('report-1');
     expect(fixture.componentInstance.message()).toContain('No se volverá a enviar esta noche');
+  });
+
+  it('groups active report candidates by establishment before showing their users', () => {
+    configure(true, selectedAudience, of(selectedAudience), true, reportCandidates);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const establishmentOptions = Array.from(
+      element.querySelectorAll<HTMLOptionElement>('.report-establishment-select option'),
+      (option) => option.textContent?.trim(),
+    );
+    expect(establishmentOptions).toContain('Centro de Salud Mariano Melgar (2 cuentas activas)');
+    expect(establishmentOptions).toContain('Puesto de Salud Alto Selva Alegre (1 cuenta activa)');
+
+    fixture.componentInstance.selectReportEstablishment('1');
+    fixture.detectChanges();
+
+    const userOptions = Array.from(
+      element.querySelectorAll<HTMLOptionElement>('.report-user-select option'),
+      (option) => option.textContent,
+    ).join(' ');
+    expect(userOptions).toContain('Ana Operadora');
+    expect(userOptions).toContain('Beatriz Operadora');
+    expect(userOptions).not.toContain('Carlos Operador');
   });
 });

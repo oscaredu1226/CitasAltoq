@@ -47,6 +47,7 @@ export class OperationsPage {
   readonly message = signal('');
   readonly reportSubscriptions = signal<DailyReportSubscription[]>([]);
   readonly reportUsers = signal<DailyReportCandidate[]>([]);
+  readonly selectedReportEstablishmentId = signal('');
   readonly selectedReportUserId = signal('');
   readonly newReportEmail = signal('');
   readonly reportLoading = signal(false);
@@ -99,8 +100,40 @@ export class OperationsPage {
     const configured = new Set(this.reportSubscriptions().map((subscription) => subscription.userId));
     return this.reportUsers().filter((user) => !configured.has(user.userId));
   });
+  readonly availableReportEstablishments = computed(() => {
+    const establishments = new Map<number, { id: number; name: string; microredName: string; redName: string; userCount: number }>();
+    for (const user of this.availableReportUsers()) {
+      const existing = establishments.get(user.establishmentId);
+      if (existing) {
+        existing.userCount += 1;
+      } else {
+        establishments.set(user.establishmentId, {
+          id: user.establishmentId,
+          name: user.establishmentName,
+          microredName: user.microredName,
+          redName: user.redName,
+          userCount: 1,
+        });
+      }
+    }
+    return Array.from(establishments.values())
+      .sort((left, right) => left.name.localeCompare(right.name, 'es-PE'));
+  });
+  readonly availableReportUsersForEstablishment = computed(() => {
+    const establishmentId = Number(this.selectedReportEstablishmentId());
+    if (!Number.isFinite(establishmentId) || establishmentId <= 0) {
+      return [];
+    }
+    return this.availableReportUsers()
+      .filter((user) => user.establishmentId === establishmentId)
+      .sort((left, right) => (left.userDisplayName || left.userEmail)
+        .localeCompare(right.userDisplayName || right.userEmail, 'es-PE'));
+  });
   readonly canAddReport = computed(() => Boolean(
-    this.selectedReportUserId() && validEmail(this.newReportEmail()) && !this.reportSaving(),
+    this.selectedReportEstablishmentId()
+      && this.selectedReportUserId()
+      && validEmail(this.newReportEmail())
+      && !this.reportSaving(),
   ));
   readonly saveBlockedMessage = computed(() => {
     if (this.canSave()) {
@@ -227,9 +260,15 @@ export class OperationsPage {
     });
   }
 
+  selectReportEstablishment(establishmentId: string): void {
+    this.selectedReportEstablishmentId.set(establishmentId);
+    this.selectedReportUserId.set('');
+    this.newReportEmail.set('');
+  }
+
   selectReportUser(userId: string): void {
     this.selectedReportUserId.set(userId);
-    const user = this.reportUsers().find((item) => item.userId === userId);
+    const user = this.availableReportUsersForEstablishment().find((item) => item.userId === userId);
     this.newReportEmail.set(user?.userEmail ?? '');
   }
 
@@ -251,6 +290,7 @@ export class OperationsPage {
       next: (subscription) => {
         this.reportSubscriptions.update((items) => [...items, subscription]
           .sort((left, right) => left.establishmentName.localeCompare(right.establishmentName, 'es-PE')));
+        this.selectedReportEstablishmentId.set('');
         this.selectedReportUserId.set('');
         this.newReportEmail.set('');
         this.message.set('Destinatario de reporte agregado.');
